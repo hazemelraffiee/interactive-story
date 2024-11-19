@@ -1,60 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import Card from '../ui/Card';
-import Button from '../ui/Button';
-import Input from '../ui/Input';
-import Textarea from '../ui/Textarea';
 import {
+  Box,
+  Paper,
+  IconButton,
+  Button,
+  TextField,
+  Typography,
+  Alert,
+  Snackbar,
+} from '@mui/material';
+import InteractiveStory from '../InteractiveStory/InteractiveStory';
+import LayoutSettings, { LAYOUT_TYPES } from './LayoutSettings';
+import ChapterDesigner from './ChapterDesigner';
+import {
+  Book,
+  Layout,
+  Play,
   Plus,
-  Download,
-  Trash2,
-  ChevronRight,
-  ChevronDown,
   Upload,
+  Save
 } from 'lucide-react';
-import yaml from 'js-yaml';
-import InteractiveStory, { animationStyles } from '../InteractiveStory/InteractiveStory';
+
+import { dump as yamlDump, load as yamlLoad } from 'js-yaml';
 
 const StoryDesigner = () => {
-  const [story, setStory] = useState({
-    title: '',
-    chapters: {},
+  const [layoutType, setLayoutType] = useState(() => {
+    const saved = localStorage.getItem('storyDesignerLayout');
+    return saved || LAYOUT_TYPES.SPLIT;
   });
-
+  const [activeTab, setActiveTab] = useState('editor');
   const [expandedChapter, setExpandedChapter] = useState(null);
   const [expandedScene, setExpandedScene] = useState(null);
-  const [previewKey, setPreviewKey] = useState(0);
+  const [isLayoutSettingsOpen, setIsLayoutSettingsOpen] = useState(false);
+  const [story, setStory] = useState({ title: '', chapters: {} });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
-  // Load story from localStorage on mount
-  useEffect(() => {
-    const savedStory = localStorage.getItem('story');
-    if (savedStory) {
-      try {
-        const parsedStory = JSON.parse(savedStory);
-        setStory(parsedStory);
-      } catch (error) {
-        console.error('Error parsing saved story:', error);
-      }
-    }
-  }, []);
-
-  // Save story to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('story', JSON.stringify(story));
-    // Increment preview key to force refresh of InteractiveStory
-    setPreviewKey(prev => prev + 1);
-  }, [story]);
-
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = animationStyles;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
-
-  // Add a new chapter
-  const addChapter = () => {
+  const handleAddChapter = () => {
     const chapterId = `chapter${Object.keys(story.chapters).length + 1}`;
     setStory((prev) => ({
       ...prev,
@@ -76,13 +57,42 @@ const StoryDesigner = () => {
       },
     }));
     setExpandedChapter(chapterId);
-    setExpandedScene(null);
   };
 
-  // Add a new scene to a chapter
-  const addScene = (chapterId) => {
-    const sceneNumber =
-      Object.keys(story.chapters[chapterId].scenes).length + 1;
+  const handleUpdateChapter = (chapterId, field, value) => {
+    setStory((prev) => ({
+      ...prev,
+      chapters: {
+        ...prev.chapters,
+        [chapterId]: {
+          ...prev.chapters[chapterId],
+          [field]: value,
+        },
+      },
+    }));
+  };
+
+  const handleUpdateScene = (chapterId, sceneId, field, value) => {
+    setStory((prev) => ({
+      ...prev,
+      chapters: {
+        ...prev.chapters,
+        [chapterId]: {
+          ...prev.chapters[chapterId],
+          scenes: {
+            ...prev.chapters[chapterId].scenes,
+            [sceneId]: {
+              ...prev.chapters[chapterId].scenes[sceneId],
+              [field]: value,
+            },
+          },
+        },
+      },
+    }));
+  };
+
+  const handleAddScene = (chapterId) => {
+    const sceneNumber = Object.keys(story.chapters[chapterId].scenes).length + 1;
     const sceneId = `scene${sceneNumber}`;
     setStory((prev) => ({
       ...prev,
@@ -102,29 +112,37 @@ const StoryDesigner = () => {
         },
       },
     }));
-    setExpandedScene(sceneId);
   };
 
-  // Delete a scene from a chapter
-  const deleteScene = (chapterId, sceneId) => {
-    setStory((prev) => {
-      const newScenes = { ...prev.chapters[chapterId].scenes };
-      delete newScenes[sceneId];
-      return {
-        ...prev,
-        chapters: {
-          ...prev.chapters,
-          [chapterId]: {
-            ...prev.chapters[chapterId],
-            scenes: newScenes,
+  const handleDeleteScene = (chapterId, sceneId) => {
+    if (window.confirm('Are you sure you want to delete this scene?')) {
+      setStory((prev) => {
+        const newChapter = { ...prev.chapters[chapterId] };
+        const newScenes = { ...newChapter.scenes };
+        delete newScenes[sceneId];
+        newChapter.scenes = newScenes;
+        return {
+          ...prev,
+          chapters: {
+            ...prev.chapters,
+            [chapterId]: newChapter,
           },
-        },
-      };
-    });
+        };
+      });
+    }
   };
 
-  // Add a decision to a scene
-  const addDecision = (chapterId, sceneId) => {
+  const handleDeleteChapter = (chapterId) => {
+    if (window.confirm('Are you sure you want to delete this chapter?')) {
+      setStory((prev) => {
+        const newChapters = { ...prev.chapters };
+        delete newChapters[chapterId];
+        return { ...prev, chapters: newChapters };
+      });
+    }
+  };
+
+  const handleAddDecision = (chapterId, sceneId) => {
     setStory((prev) => ({
       ...prev,
       chapters: {
@@ -146,514 +164,253 @@ const StoryDesigner = () => {
     }));
   };
 
-  // Update story title
-  const updateStoryTitle = (title) => {
-    setStory((prev) => ({ ...prev, title }));
-  };
-
-  // Update chapter title
-  const updateChapterTitle = (chapterId, title) => {
+  const handleUpdateDecision = (chapterId, sceneId, index, field, value) => {
     setStory((prev) => ({
       ...prev,
       chapters: {
         ...prev.chapters,
         [chapterId]: {
           ...prev.chapters[chapterId],
-          title,
-        },
-      },
-    }));
-  };
-
-  // Update firstSceneId of a chapter
-  const updateFirstSceneId = (chapterId, firstSceneId) => {
-    setStory((prev) => ({
-      ...prev,
-      chapters: {
-        ...prev.chapters,
-        [chapterId]: {
-          ...prev.chapters[chapterId],
-          firstSceneId,
-        },
-      },
-    }));
-  };
-
-  // Update a scene's field
-  const updateScene = (chapterId, sceneId, field, value) => {
-    // Handle renaming scene IDs
-    if (field === 'id') {
-      setStory((prev) => {
-        const scenes = { ...prev.chapters[chapterId].scenes };
-        const sceneData = { ...scenes[sceneId], id: value };
-        delete scenes[sceneId];
-        scenes[value] = sceneData;
-
-        // Update firstSceneId if necessary
-        let updatedChapter = { ...prev.chapters[chapterId] };
-        if (prev.chapters[chapterId].firstSceneId === sceneId) {
-          updatedChapter.firstSceneId = value;
-        }
-
-        // Update decisions that reference this scene
-        Object.values(scenes).forEach((scene) => {
-          scene.decisions = scene.decisions.map((decision) => {
-            if (decision.nextScene === sceneId) {
-              return { ...decision, nextScene: value };
-            }
-            return decision;
-          });
-        });
-
-        return {
-          ...prev,
-          chapters: {
-            ...prev.chapters,
-            [chapterId]: {
-              ...updatedChapter,
-              scenes,
+          scenes: {
+            ...prev.chapters[chapterId].scenes,
+            [sceneId]: {
+              ...prev.chapters[chapterId].scenes[sceneId],
+              decisions: prev.chapters[chapterId].scenes[sceneId].decisions.map(
+                (decision, i) => (i === index ? { ...decision, [field]: value } : decision)
+              ),
             },
           },
-        };
+        },
+      },
+    }));
+  };
+
+  const handleDeleteDecision = (chapterId, sceneId, index) => {
+    setStory((prev) => ({
+      ...prev,
+      chapters: {
+        ...prev.chapters,
+        [chapterId]: {
+          ...prev.chapters[chapterId],
+          scenes: {
+            ...prev.chapters[chapterId].scenes,
+            [sceneId]: {
+              ...prev.chapters[chapterId].scenes[sceneId],
+              decisions: prev.chapters[chapterId].scenes[sceneId].decisions.filter(
+                (_, i) => i !== index
+              ),
+            },
+          },
+        },
+      },
+    }));
+  };
+
+  // Handle Export Story
+  const handleExportStory = () => {
+    try {
+      const yamlString = yamlDump(story);
+      const blob = new Blob([yamlString], { type: 'application/x-yaml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${story.title.toLowerCase().replace(/\s+/g, '_')}.yaml`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setSnackbar({
+        open: true,
+        message: 'Story exported successfully',
+        severity: 'success',
       });
-    } else {
-      setStory((prev) => ({
-        ...prev,
-        chapters: {
-          ...prev.chapters,
-          [chapterId]: {
-            ...prev.chapters[chapterId],
-            scenes: {
-              ...prev.chapters[chapterId].scenes,
-              [sceneId]: {
-                ...prev.chapters[chapterId].scenes[sceneId],
-                [field]: value,
-              },
-            },
-          },
-        },
-      }));
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: 'Failed to export story',
+        severity: 'error',
+      });
     }
   };
 
-  // Update a decision's field
-  const updateDecision = (chapterId, sceneId, index, field, value) => {
-    setStory((prev) => {
-      const decisions =
-        prev.chapters[chapterId].scenes[sceneId].decisions.map(
-          (decision, i) =>
-            i === index ? { ...decision, [field]: value } : decision
-        );
-      return {
-        ...prev,
-        chapters: {
-          ...prev.chapters,
-          [chapterId]: {
-            ...prev.chapters[chapterId],
-            scenes: {
-              ...prev.chapters[chapterId].scenes,
-              [sceneId]: {
-                ...prev.chapters[chapterId].scenes[sceneId],
-                decisions,
-              },
-            },
-          },
-        },
-      };
-    });
-  };
-
-  // Remove a decision from a scene
-  const removeDecision = (chapterId, sceneId, index) => {
-    setStory((prev) => {
-      const decisions =
-        prev.chapters[chapterId].scenes[sceneId].decisions.filter(
-          (_, i) => i !== index
-        );
-      return {
-        ...prev,
-        chapters: {
-          ...prev.chapters,
-          [chapterId]: {
-            ...prev.chapters[chapterId],
-            scenes: {
-              ...prev.chapters[chapterId].scenes,
-              [sceneId]: {
-                ...prev.chapters[chapterId].scenes[sceneId],
-                decisions,
-              },
-            },
-          },
-        },
-      };
-    });
-  };
-
-  // Export the story as a YAML file
-  const exportStory = () => {
-    const yamlString = yaml.dump(story);
-    const blob = new Blob([yamlString], { type: 'application/x-yaml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${story.title.toLowerCase().replace(/\s+/g, '_')}.yaml`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  // Import a story from a YAML file
-  const importStory = (event) => {
+  // Handle Import Story
+  const handleImportStory = (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const importedStory = yaml.load(e.target.result);
+        const importedStory = yamlLoad(e.target.result);
         setStory(importedStory);
         setExpandedChapter(null);
         setExpandedScene(null);
+        setSnackbar({
+          open: true,
+          message: 'Story imported successfully',
+          severity: 'success',
+        });
       } catch (error) {
-        console.error('Error parsing YAML file:', error);
+        setSnackbar({
+          open: true,
+          message: 'Failed to import story',
+          severity: 'error',
+        });
       }
     };
     reader.readAsText(file);
   };
 
-  // Build options for the Next Scene/Chapter dropdown
-  const buildNextOptions = () => {
-    const options = [];
-    options.push(
-      <option key="select-option" value="">
-        Select next step
-      </option>
-    );
-    Object.entries(story.chapters).forEach(([chapterId, chapter]) => {
-      options.push(
-        <option key={chapterId} value={`chapter:${chapterId}`}>
-          Chapter: {chapterId}
-        </option>
-      );
-      Object.keys(chapter.scenes).forEach((sceneId) => {
-        options.push(
-          <option
-            key={`${chapterId}-${sceneId}`}
-            value={`scene:${chapterId}:${sceneId}`}
-          >
-            &nbsp;&nbsp;Scene: {sceneId} (in {chapterId})
-          </option>
-        );
-      });
-    });
-    return options;
-  };
+  const renderEditor = () => (
+    <Box sx={{ p: 3, overflow: 'auto', height: 'calc(100vh - 72px)' }}>
+      <Alert severity="info" sx={{ mb: 3 }}>
+        Pro tip: Use '&gt;' for dialogue (e.g. "&gt; John: Hello!") and '*' for thoughts
+      </Alert>
 
-  // Handle change in Next Scene/Chapter dropdown
-  const handleNextChange = (chapterId, sceneId, index, value) => {
-    if (value.startsWith('chapter:')) {
-      const nextChapterId = value.replace('chapter:', '');
-      updateDecision(chapterId, sceneId, index, 'nextChapter', nextChapterId);
-      updateDecision(chapterId, sceneId, index, 'nextScene', undefined);
-    } else if (value.startsWith('scene:')) {
-      const [, , nextSceneId] = value.split(':');
-      updateDecision(chapterId, sceneId, index, 'nextChapter', undefined);
-      updateDecision(chapterId, sceneId, index, 'nextScene', nextSceneId);
-    } else {
-      updateDecision(chapterId, sceneId, index, 'nextChapter', undefined);
-      updateDecision(chapterId, sceneId, index, 'nextScene', undefined);
-    }
-  };
+      {Object.entries(story.chapters).map(([chapterId, chapter]) => (
+        <ChapterDesigner
+          key={chapterId}
+          chapter={chapter}
+          chapterId={chapterId}
+          isExpanded={expandedChapter === chapterId}
+          expandedSceneId={expandedScene}
+          onToggle={() => setExpandedChapter(expandedChapter === chapterId ? null : chapterId)}
+          onToggleScene={setExpandedScene}
+          onUpdateChapter={handleUpdateChapter}
+          onUpdateScene={handleUpdateScene}
+          onDeleteScene={handleDeleteScene}
+          onAddScene={handleAddScene}
+          onAddDecision={handleAddDecision}
+          onUpdateDecision={handleUpdateDecision}
+          onDeleteDecision={handleDeleteDecision}
+          onDeleteChapter={handleDeleteChapter}
+        />
+      ))}
+    </Box>
+  );
 
+  const renderChapter = (chapterId, chapter) => (
+    <ChapterDesigner
+      key={chapterId}
+      chapter={chapter}
+      chapterId={chapterId}
+      isExpanded={expandedChapter === chapterId}
+      expandedSceneId={expandedScene}
+      onToggle={() => setExpandedChapter(expandedChapter === chapterId ? null : chapterId)}
+      onToggleScene={setExpandedScene}
+      onUpdateChapter={handleUpdateChapter}
+      onUpdateScene={handleUpdateScene}
+      onDeleteScene={handleDeleteScene}
+      onAddScene={handleAddScene}
+      onAddDecision={handleAddDecision}
+      onUpdateDecision={handleUpdateDecision}
+      onDeleteDecision={handleDeleteDecision}
+      onDeleteChapter={handleDeleteChapter}
+    />
+  );
+
+  const renderPreview = () => (
+    <InteractiveStory story={story} />
+  );
+  
   return (
-    <div className="p-4 max-w-7xl mx-auto flex gap-4">
-      {/* Left Side - Story Designer */}
-      <div className="w-3/5">
-        <Card>
-          <div className="p-6">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold mb-4">
-                Interactive Story Designer
-              </h1>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Story Title
-                </label>
-                <Input
-                  value={story.title}
-                  onChange={(e) => updateStoryTitle(e.target.value)}
-                  placeholder="Enter story title"
-                  className="w-full"
-                />
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      <div className="flex h-screen">
+        {/* Sidebar */}
+        <div className="w-16 bg-white border-r border-gray-200 flex flex-col items-center py-4 gap-4">
+          <button
+            onClick={() => setActiveTab('editor')}
+            className={`p-3 rounded-xl transition-colors ${
+              activeTab === 'editor' 
+                ? 'bg-blue-100 text-blue-600' 
+                : 'text-gray-400 hover:bg-gray-100'
+            }`}
+          >
+            <Book className="w-6 h-6" />
+          </button>
+          <button
+            onClick={() => setActiveTab('preview')}
+            className={`p-3 rounded-xl transition-colors ${
+              activeTab === 'preview'
+                ? 'bg-blue-100 text-blue-600'
+                : 'text-gray-400 hover:bg-gray-100'
+            }`}
+          >
+            <Play className="w-6 h-6" />
+          </button>
+          <button
+            onClick={() => setLayoutType(layoutType === 'split' ? 'tab' : 'split')}
+            className="p-3 text-gray-400 hover:bg-gray-100 rounded-xl mt-auto"
+          >
+            <Layout className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 overflow-hidden">
+          {/* Header */}
+          <div className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <input
+                type="text"
+                value={story.title}
+                onChange={(e) => setStory(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Enter story title..."
+                className="text-xl font-semibold bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-1"
+              />
             </div>
-
-            <div className="space-y-4">
-              {Object.entries(story.chapters).map(([chapterId, chapter]) => (
-                <Card key={chapterId} className="p-4">
-                  <div
-                    className="flex items-center cursor-pointer"
-                    onClick={() =>
-                      setExpandedChapter(
-                        expandedChapter === chapterId ? null : chapterId
-                      )
-                    }
-                  >
-                    {expandedChapter === chapterId ? (
-                      <ChevronDown className="w-4 h-4 mr-2" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 mr-2" />
-                    )}
-                    <Input
-                      value={chapter.title}
-                      onChange={(e) =>
-                        updateChapterTitle(chapterId, e.target.value)
-                      }
-                      className="w-full"
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </div>
-
-                  {expandedChapter === chapterId && (
-                    <div className="mt-4 space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1">
-                          First Scene ID
-                        </label>
-                        <select
-                          value={chapter.firstSceneId}
-                          onChange={(e) =>
-                            updateFirstSceneId(chapterId, e.target.value)
-                          }
-                          className="w-full p-2 border rounded"
-                        >
-                          {Object.keys(chapter.scenes).map((sceneId) => (
-                            <option key={sceneId} value={sceneId}>
-                              {sceneId}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {Object.entries(chapter.scenes).map(([sceneId, scene]) => (
-                        <Card key={sceneId} className="p-4">
-                          <div
-                            className="flex items-center cursor-pointer"
-                            onClick={() =>
-                              setExpandedScene(
-                                expandedScene === sceneId ? null : sceneId
-                              )
-                            }
-                          >
-                            {expandedScene === sceneId ? (
-                              <ChevronDown className="w-4 h-4 mr-2" />
-                            ) : (
-                              <ChevronRight className="w-4 h-4 mr-2" />
-                            )}
-                            <Input
-                              value={scene.id}
-                              onChange={(e) =>
-                                updateScene(
-                                  chapterId,
-                                  sceneId,
-                                  'id',
-                                  e.target.value
-                                )
-                              }
-                              className="w-full"
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                            <Button
-                              size="icon"
-                              variant="destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteScene(chapterId, sceneId);
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-
-                          {expandedScene === sceneId && (
-                            <div className="mt-4 space-y-4">
-                              <div>
-                                <label className="block text-sm font-medium mb-1">
-                                  Animation
-                                </label>
-                                <select
-                                  value={scene.animation}
-                                  onChange={(e) =>
-                                    updateScene(
-                                      chapterId,
-                                      sceneId,
-                                      'animation',
-                                      e.target.value
-                                    )
-                                  }
-                                  className="w-full p-2 border rounded"
-                                >
-                                  <option value="fadeIn">fadeIn</option>
-                                  <option value="slideInRight">
-                                    slideInRight
-                                  </option>
-                                  <option value="earthquake">earthquake</option>
-                                </select>
-                              </div>
-
-                              <div>
-                                <label className="block text-sm font-medium mb-1">
-                                  Content
-                                </label>
-                                <Textarea
-                                  value={scene.content}
-                                  onChange={(e) =>
-                                    updateScene(
-                                      chapterId,
-                                      sceneId,
-                                      'content',
-                                      e.target.value
-                                    )
-                                  }
-                                  rows={4}
-                                  className="w-full"
-                                  placeholder="Enter scene content..."
-                                />
-                              </div>
-
-                              <div>
-                                <div className="flex justify-between items-center mb-2">
-                                  <label className="text-sm font-medium">
-                                    Decisions
-                                  </label>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => addDecision(chapterId, sceneId)}
-                                    className="flex items-center"
-                                  >
-                                    <Plus className="w-4 h-4 mr-1" /> Add
-                                    Decision
-                                  </Button>
-                                </div>
-
-                                <div className="space-y-2">
-                                  {scene.decisions.map((decision, index) => (
-                                    <div
-                                      key={index}
-                                      className="flex items-center gap-2"
-                                    >
-                                      <Input
-                                        value={decision.text}
-                                        onChange={(e) =>
-                                          updateDecision(
-                                            chapterId,
-                                            sceneId,
-                                            index,
-                                            'text',
-                                            e.target.value
-                                          )
-                                        }
-                                        placeholder="Decision text"
-                                        className="flex-1"
-                                      />
-                                      <select
-                                        value={
-                                          decision.nextChapter
-                                            ? `chapter:${decision.nextChapter}`
-                                            : decision.nextScene
-                                            ? `scene:${chapterId}:${decision.nextScene}`
-                                            : ''
-                                        }
-                                        onChange={(e) =>
-                                          handleNextChange(
-                                            chapterId,
-                                            sceneId,
-                                            index,
-                                            e.target.value
-                                          )
-                                        }
-                                        className="flex-1 p-2 border rounded"
-                                      >
-                                        {buildNextOptions()}
-                                      </select>
-                                      <Button
-                                        size="icon"
-                                        variant="destructive"
-                                        onClick={() =>
-                                          removeDecision(
-                                            chapterId,
-                                            sceneId,
-                                            index
-                                          )
-                                        }
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </Button>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </Card>
-                      ))}
-                      <Button
-                        onClick={() => addScene(chapterId)}
-                        className="w-full flex items-center justify-center"
-                      >
-                        <Plus className="w-4 h-4 mr-1" /> Add Scene
-                      </Button>
-                    </div>
-                  )}
-                </Card>
-              ))}
-            </div>
-
-            <div className="flex gap-4 mt-6">
-              <Button onClick={addChapter} className="flex items-center">
-                <Plus className="w-4 h-4 mr-1" /> Add Chapter
-              </Button>
-              <Button
-                onClick={exportStory}
-                className="flex items-center"
-                disabled={!story.title}
-              >
-                <Download className="w-4 h-4 mr-1" /> Export Story
-              </Button>
-              <div className="relative">
+            <div className="flex items-center gap-2">
+              <label className="px-4 py-2 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer">
+                <Upload className="w-4 h-4" />
+                Import
                 <input
                   type="file"
+                  hidden
                   accept=".yaml,.yml"
-                  onChange={importStory}
-                  className="hidden"
-                  id="import-story"
+                  onChange={handleImportStory}
                 />
-                <label htmlFor="import-story">
-                  <Button className="flex items-center">
-                    <Upload className="w-4 h-4 mr-1" /> Import Story
-                  </Button>
-                </label>
-              </div>
+              </label>
+              <button 
+                onClick={handleExportStory}
+                disabled={!story.title}
+                className="px-4 py-2 text-sm bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Save className="w-4 h-4" />
+                Export
+              </button>
+              <button 
+                onClick={handleAddChapter}
+                className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                New Chapter
+              </button>
             </div>
           </div>
-        </Card>
+
+          {/* Content Area */}
+          <div className="flex-1 overflow-auto p-6">
+            {activeTab === 'editor' ? renderEditor() : renderPreview()}
+          </div>
+        </div>
       </div>
 
-      {/* Right Side - Interactive Preview */}
-      <div className="w-2/5 h-[calc(100vh-2rem)] sticky top-4">
-        <Card className="h-full overflow-hidden">
-          <div className="p-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold">Story Preview</h2>
-          </div>
-          <div className="h-[calc(100%-4rem)] overflow-auto">
-            <InteractiveStory 
-              key={previewKey}
-              story={story}
-            />
-          </div>
-        </Card>
-      </div>
+      {/* Snackbar for notifications */}
+      {snackbar.open && (
+        <div className="fixed bottom-4 right-4 bg-white shadow-lg rounded-lg p-4 flex items-center gap-2">
+          <span className={`text-sm ${
+            snackbar.severity === 'success' ? 'text-green-600' : 'text-red-600'
+          }`}>
+            {snackbar.message}
+          </span>
+          <button
+            onClick={() => setSnackbar({ ...snackbar, open: false })}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 };
