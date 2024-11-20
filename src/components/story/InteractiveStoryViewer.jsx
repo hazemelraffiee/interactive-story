@@ -147,7 +147,7 @@ const Scene = ({ scene, showDecisions = false, onDecision, chapter, chapters }) 
   );
 };
 
-const InteractiveStory = ({ story }) => {
+const InteractiveStoryViewer = ({ story }) => {
   const [currentChapter, setCurrentChapter] = useState('');
   const [storyHistory, setStoryHistory] = useState([]);
 
@@ -263,4 +263,4 @@ const InteractiveStory = ({ story }) => {
   );
 };
 
-export default InteractiveStory;
+export default InteractiveStoryViewer;

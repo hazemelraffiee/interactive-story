@@ -1,16 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
-  Paper,
-  IconButton,
-  Button,
-  TextField,
-  Typography,
   Alert,
-  Snackbar,
 } from '@mui/material';
-import InteractiveStory from '../InteractiveStory/InteractiveStory';
-import LayoutSettings, { LAYOUT_TYPES } from './LayoutSettings';
+import InteractiveStoryViewer from '../InteractiveStoryViewer';
+import { LAYOUT_TYPES } from './LayoutSettings';
 import ChapterDesigner from './ChapterDesigner';
 import {
   Book,
@@ -310,7 +304,7 @@ const StoryDesigner = () => {
   );
 
   const renderPreview = () => (
-    <InteractiveStory story={story} />
+    <InteractiveStoryViewer story={story} />
   );
   
   return (
