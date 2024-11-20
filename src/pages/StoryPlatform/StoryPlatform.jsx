@@ -6,7 +6,7 @@ import Navigation from '../../components/layout/Navigation';
 import NotificationToast from '../../components/common/NotificationToast';
 import HeroSection from '../../components/sections/HeroSection';
 import InteractiveStoryViewer from '../../components/story/InteractiveStoryViewer';
-import StoryDesigner from '../../components/story/StoryDesigner/StoryDesigner';
+import StoryDesigner from '../../components/story/StoryDesigner';
 import StoryCard from '../../components/story/StoryCard';
 import FavoritesView from './FavoritesView';
 import MyStoriesView from './MyStoriesView'

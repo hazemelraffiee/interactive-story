@@ -5,24 +5,10 @@ import {
   Trash2, 
   Globe, 
   Lock,
-  MoreVertical,
   Copy,
   Archive,
-  Eye,
-  EyeOff
 } from 'lucide-react';
 import StoryCard from '../../components/story/StoryCard';
-
-// Story privacy badge component
-const PrivacyBadge = ({ isPrivate }) => (
-  <div className="absolute bottom-4 left-4">
-    {isPrivate ? (
-      <Lock className="w-5 h-5 text-purple-600" />
-    ) : (
-      <Globe className="w-5 h-5 text-purple-600" />
-    )}
-  </div>
-);
 
 const MyStoriesView = ({ onStoryRead, onLike, onSave, onShare, onEdit }) => {
   // Demo data for my stories

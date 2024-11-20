@@ -51,11 +51,11 @@ const ContentBlock = ({ item }) => {
   switch (item.type) {
     case 'dialogue':
       return (
-        <div className="my-4 pl-4 border-l-4 border-blue-200">
+        <div className="my-4 pl-4 border-l-4 border-purple-200">
           <div className="flex items-start gap-2">
-            <MessageCircle className="w-5 h-5 mt-1 text-blue-500" />
+            <MessageCircle className="w-5 h-5 mt-1 text-purple-500" />
             <div>
-              <span className="font-semibold text-blue-600">{item.speaker}:</span>
+              <span className="font-semibold text-purple-600">{item.speaker}:</span>
               <p className="text-lg italic">{item.text}</p>
             </div>
           </div>
@@ -113,7 +113,7 @@ const DecisionButton = ({ decision, chapter, scenes, allChapters, onDecision }) 
   );
 };
 
-const Scene = ({ scene, showDecisions = false, onDecision, chapter, chapters }) => {
+export const Scene = ({ scene, showDecisions = false, onDecision, chapter, chapters }) => {
   if (!scene) return null;
   const animationClass = scene.animation
     ? `animate-${scene.animation}`
@@ -230,7 +230,7 @@ const InteractiveStoryViewer = ({ story }) => {
     >
       <header className="mb-6">
         <div className="flex items-center gap-3 mb-4">
-          <Coffee className="w-6 h-6 text-blue-600" />
+          <Coffee className="w-6 h-6 text-purple-600" />
           <h1 className="text-2xl font-bold text-gray-900">{story.title}</h1>
         </div>
         <div className="flex items-baseline gap-4 border-b border-gray-200 pb-2">
