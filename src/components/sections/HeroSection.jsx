@@ -1,5 +1,5 @@
 import React from 'react';
-import SearchBar from '../common/GenrePills';
+import SearchBar from '../common/SearchBar';
 import GenrePills from '../common/GenrePills';
 
 const HeroSection = ({ 

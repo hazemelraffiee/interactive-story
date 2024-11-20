@@ -3,12 +3,13 @@ import { TrendingUp, Clock, Star } from 'lucide-react';
 
 // Import Components
 import Navigation from '../../components/layout/Navigation';
-import { Home } from 'lucide-react';
 import NotificationToast from '../../components/common/NotificationToast';
 import HeroSection from '../../components/sections/HeroSection';
 import InteractiveStoryViewer from '../../components/story/InteractiveStoryViewer';
 import StoryDesigner from '../../components/story/StoryDesigner/StoryDesigner';
 import StoryCard from '../../components/story/StoryCard';
+import FavoritesView from './FavoritesView';
+import MyStoriesView from './MyStoriesView'
 
 const StoryPlatform = () => {
   // State Management
@@ -19,7 +20,7 @@ const StoryPlatform = () => {
   const [likedStories, setLikedStories] = useState(new Set());
   const [savedStories, setSavedStories] = useState(new Set());
   const [selectedStory, setSelectedStory] = useState(null);
-  const [currentView, setCurrentView] = useState('browse'); // 'browse', 'create', or 'view'
+  const [currentView, setCurrentView] = useState('browse');
 
   // Demo featured stories data
   const featuredStories = [
@@ -103,9 +104,33 @@ const StoryPlatform = () => {
     setCurrentView('create');
   };
 
+  const handleFavoritesClick = () => {
+    setCurrentView('favorites');
+  };
+
+  const handleMyStoriesClick = () => {
+    setCurrentView('mystories');
+  };
+
   const handleBackToBrowse = () => {
     setCurrentView('browse');
     setSelectedStory(null);
+  };
+
+  // Navigation props that will be consistent across all views
+  const navigationProps = {
+    onCreateClick: handleCreateClick,
+    onHomeClick: handleBackToBrowse,
+    onFavoritesClick: handleFavoritesClick,
+    onMyStoriesClick: handleMyStoriesClick
+  };
+
+  // Story interaction props that will be consistent across views
+  const storyInteractionProps = {
+    onStoryRead: handleStoryRead,
+    onLike: handleStoryLike,
+    onSave: handleStorySave,
+    onShare: handleStoryShare
   };
 
   // Render different views based on currentView state
@@ -114,31 +139,49 @@ const StoryPlatform = () => {
       case 'create':
         return (
           <div className="min-h-screen bg-gray-50">
-            <Navigation 
-              onCreateClick={handleCreateClick}
-              onHomeClick={handleBackToBrowse}
-              showHomeButton={currentView !== 'browse'}
-            />
+            <Navigation {...navigationProps} />
             <StoryDesigner onClose={handleBackToBrowse} />
           </div>
         );
-      
+
       case 'view':
         return (
           <div className="min-h-screen bg-gray-50">
-            <Navigation onCreateClick={handleCreateClick} />
-            <InteractiveStoryViewer 
+            <Navigation {...navigationProps} />
+            <InteractiveStoryViewer
               story={selectedStory}
               onClose={handleBackToBrowse}
             />
           </div>
         );
-      
+
+      case 'favorites':
+        return (
+          <div className="min-h-screen bg-gray-50">
+            <Navigation {...navigationProps} />
+            <FavoritesView {...storyInteractionProps} />
+          </div>
+        );
+
+      case 'mystories':
+        return (
+          <div className="min-h-screen bg-gray-50">
+            <Navigation {...navigationProps} />
+            <MyStoriesView
+              {...storyInteractionProps}
+              onEdit={(story) => {
+                setSelectedStory(story);
+                setCurrentView('create');
+              }}
+            />
+          </div>
+        );
+
       default: // 'browse'
         return (
           <div className="min-h-screen bg-gray-50">
-            <Navigation onCreateClick={handleCreateClick} />
-            
+            <Navigation {...navigationProps} />
+
             {showNotification && (
               <NotificationToast
                 title="New Story Alert!"
@@ -167,11 +210,10 @@ const StoryPlatform = () => {
                     <button
                       key={label}
                       onClick={() => setActiveFilter(label)}
-                      className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
-                        activeFilter === label
-                          ? 'bg-purple-100 text-purple-600'
-                          : 'hover:bg-gray-100'
-                      }`}
+                      className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${activeFilter === label
+                        ? 'bg-purple-100 text-purple-600'
+                        : 'hover:bg-gray-100'
+                        }`}
                     >
                       <Icon className="w-4 h-4" />
                       <span className="capitalize hidden sm:inline">{label}</span>

@@ -10,7 +10,7 @@ import {
   BookMarked
 } from 'lucide-react';
 
-const Navigation = ({ onCreateClick, onHomeClick }) => {
+const Navigation = ({ onCreateClick, onHomeClick, onMyStoriesClick, onFavoritesClick }) => {
   return (
     <nav className="bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -34,11 +34,17 @@ const Navigation = ({ onCreateClick, onHomeClick }) => {
             
             <div className="hidden md:block ml-10">
               <div className="flex items-center space-x-4">
-                <button className="text-gray-500 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-2">
+                <button 
+                  onClick={onMyStoriesClick}
+                  className="text-gray-500 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-2"
+                >
                   <BookMarked className="h-5 w-5" />
                   <span>My Stories</span>
                 </button>
-                <button className="text-gray-500 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-2">
+                <button 
+                  onClick={onFavoritesClick}
+                  className="text-gray-500 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-2"
+                >
                   <Heart className="h-5 w-5 stroke-2" />
                   <span>Favorites</span>
                 </button>
