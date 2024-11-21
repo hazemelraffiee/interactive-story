@@ -2,13 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Save, Eye, Code, Edit3, CheckCircle2, 
   AlertCircle, Loader, Menu, Upload, Download,
-  X, LayoutGrid, BookOpen, Plus
+  X, LayoutGrid, BookOpen, Plus, Share2
 } from 'lucide-react';
 import { load as yamlLoad, dump as yamlDump } from 'js-yaml';
 import Editor from '@monaco-editor/react';
 import InteractiveStoryViewer from './InteractiveStoryViewer';
 import SceneContentEditor from './SceneContentEditor';
 import ChaptersTreeDesigner from './ChaptersTreeDesigner';
+import StoryGraphViewer from './StoryGraphViewer';
 
 const TopBar = ({ 
   title, 
@@ -74,6 +75,15 @@ const ViewToggle = ({
         <span className="text-sm">Editor</span>
       </button>
       <button
+        onClick={() => setShowCode(!showCode)}
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
+          showCode ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+        }`}
+      >
+        <Code className="w-4 h-4" />
+        <span className="text-sm">Code</span>
+      </button>
+      <button
         onClick={() => { setView('preview'); setShowCode(false); }}
         className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
           view === 'preview' && !showCode ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
@@ -83,13 +93,13 @@ const ViewToggle = ({
         <span className="text-sm">Preview</span>
       </button>
       <button
-        onClick={() => setShowCode(!showCode)}
+        onClick={() => { setView('graph'); setShowCode(false); }}
         className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
-          showCode ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+          view === 'graph' && !showCode ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
         }`}
       >
-        <Code className="w-4 h-4" />
-        <span className="text-sm">Code</span>
+        <Share2 className="w-4 h-4" />
+        <span className="text-sm">Graph</span>
       </button>
     </div>
 
@@ -506,6 +516,12 @@ const StoryDesigner = () => {
             <div className="h-full overflow-y-auto">
               <div className="max-w-4xl mx-auto px-4 py-6 md:p-6">
                 <InteractiveStoryViewer story={story} />
+              </div>
+            </div>
+          ) : view === 'graph' ? (
+            <div className="h-full overflow-y-auto">
+              <div className="max-w-4xl mx-auto px-4 py-6 md:p-6">
+                <StoryGraphViewer story={story} />
               </div>
             </div>
           ) : (
