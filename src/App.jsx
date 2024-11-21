@@ -4,7 +4,7 @@ import StoryPlatform from './pages/StoryPlatform/StoryPlatform';
 
 function App() {
   return (
-    <Router>
+    <Router basename={process.env.PUBLIC_URL}>
       <Routes>
         <Route path="/" element={<StoryPlatform />} />
       </Routes>
