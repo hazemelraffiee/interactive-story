@@ -467,12 +467,39 @@ const StoryDesigner = () => {
           ) : view === 'editor' && selected?.type === 'scene' ? (
             <div className="h-full overflow-y-auto px-4 py-6 md:p-6">
               <div className="max-w-4xl mx-auto">
-                <SceneContentEditor
-                  scene={story.chapters[selected.chapterId]?.scenes[selected.sceneId]}
-                  chapterId={selected.chapterId}
-                  sceneId={selected.sceneId}
-                  onChange={handleSceneUpdate}
-                />
+              <SceneContentEditor
+                scene={story.chapters[selected.chapterId]?.scenes[selected.sceneId]}
+                chapterId={selected.chapterId}
+                sceneId={selected.sceneId}
+                onChange={handleSceneUpdate}
+                story={story}
+                onCreateScene={(chapterId, sceneId, sceneData) => {
+                  // Update your story state to include the new scene
+                  setStory(prev => ({
+                    ...prev,
+                    chapters: {
+                      ...prev.chapters,
+                      [chapterId]: {
+                        ...prev.chapters[chapterId],
+                        scenes: {
+                          ...prev.chapters[chapterId].scenes,
+                          [sceneId]: sceneData
+                        }
+                      }
+                    }
+                  }));
+                }}
+                onCreateChapter={(chapterId, chapterData) => {
+                  // Update your story state to include the new chapter
+                  setStory(prev => ({
+                    ...prev,
+                    chapters: {
+                      ...prev.chapters,
+                      [chapterId]: chapterData
+                    }
+                  }));
+                }}
+              />
               </div>
             </div>
           ) : view === 'preview' ? (

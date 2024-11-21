@@ -1,12 +1,126 @@
 import React, { useState, useRef } from 'react';
-import { MessageCircle, Brain, Eye, Edit3, Plus, Trash2 } from 'lucide-react';
+import { MessageCircle, Brain, Eye, Edit3, Plus, Trash2, ChevronDown, AlertCircle } from 'lucide-react';
 import { Scene } from './InteractiveStoryViewer';
+
+const ChapterSceneSelector = ({ 
+  story,
+  value,
+  onChange,
+  placeholder = "Select target...",
+  onCreateNewScene,
+  onCreateNewChapter
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Check if the current value is valid
+  const isInvalid = value && (
+    (value.nextChapter && !story.chapters[value.nextChapter]) ||
+    (value.nextScene && !Object.values(story.chapters).some(
+      chapter => Object.keys(chapter.scenes || {}).includes(value.nextScene)
+    ))
+  );
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full px-3 py-2 bg-white border rounded-md flex items-center justify-between text-left focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+          isInvalid 
+            ? 'border-red-300 bg-red-50 hover:border-red-400' 
+            : 'border-gray-200 hover:border-gray-300'
+        }`}
+        title={isInvalid ? 'This target no longer exists in the story' : undefined}
+      >
+        <span className={`text-sm ${isInvalid ? 'text-red-600' : ''}`}>
+          {value ? (
+            value.nextChapter ? 
+              `Chapter: ${story.chapters[value.nextChapter]?.title || value.nextChapter}${isInvalid ? ' (Invalid)' : ''}` :
+              `Scene: ${value.nextScene}${isInvalid ? ' (Invalid)' : ''}`
+          ) : (
+            <span className="text-gray-500">{placeholder}</span>
+          )}
+        </span>
+        <div className="flex items-center gap-2">
+          {isInvalid && (
+            <AlertCircle className="w-4 h-4 text-red-500" />
+          )}
+          <ChevronDown className={`w-4 h-4 ${isInvalid ? 'text-red-500' : 'text-gray-500'}`} />
+        </div>
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+          {Object.entries(story.chapters).map(([chapterId, chapter]) => (
+            <div key={chapterId} className="divide-y divide-gray-100">
+              {/* Chapter option */}
+              <button
+                type="button"
+                onClick={() => {
+                  onChange({ nextChapter: chapterId });
+                  setIsOpen(false);
+                }}
+                className="w-full px-3 py-2 text-left hover:bg-purple-50 text-sm font-medium text-gray-900"
+              >
+                Chapter: {chapter.title || chapterId}
+              </button>
+              
+              {/* Scene options */}
+              {Object.entries(chapter.scenes || {}).map(([sceneId, scene]) => (
+                <button
+                  key={sceneId}
+                  type="button"
+                  onClick={() => {
+                    onChange({ nextScene: sceneId });
+                    setIsOpen(false);
+                  }}
+                  className="w-full px-3 py-2 text-left hover:bg-purple-50 text-sm text-gray-600 pl-6"
+                >
+                  Scene: {scene.id || sceneId}
+                </button>
+              ))}
+              
+              {/* New Scene option */}
+              <button
+                type="button"
+                onClick={() => {
+                  const newScene = onCreateNewScene(chapterId);
+                  onChange({ nextScene: newScene.id });
+                  setIsOpen(false);
+                }}
+                className="w-full px-3 py-2 text-left hover:bg-purple-50 text-sm text-purple-600 pl-6 font-medium border-t border-gray-100"
+              >
+                + New Scene in this Chapter
+              </button>
+            </div>
+          ))}
+          
+          {/* New Chapter option */}
+          <button
+            type="button"
+            onClick={() => {
+              const newChapter = onCreateNewChapter();
+              onChange({ nextChapter: newChapter.id });
+              setIsOpen(false);
+            }}
+            className="w-full px-3 py-2 text-left hover:bg-purple-50 text-sm text-purple-600 font-medium border-t border-gray-100"
+          >
+            + Create New Chapter
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const SceneContentEditor = ({ 
   scene, 
   chapterId, 
   sceneId, 
-  onChange 
+  onChange,
+  story,
+  onCreateChapter,
+  onCreateScene 
 }) => {
   const [isPreview, setIsPreview] = useState(false);
   const textareaRef = useRef(null);
@@ -179,12 +293,43 @@ const SceneContentEditor = ({
                     placeholder="Decision text..."
                     className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
-                  <input
-                    type="text"
-                    value={decision.nextScene || ''}
-                    onChange={(e) => handleDecisionChange(index, 'nextScene', e.target.value)}
-                    placeholder="Next scene ID..."
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  <ChapterSceneSelector
+                    story={story}
+                    value={{ 
+                      nextChapter: decision.nextChapter,
+                      nextScene: decision.nextScene
+                    }}
+                    onChange={(target) => {
+                      // Clear both fields first
+                      const updatedDecision = { ...decision };
+                      delete updatedDecision.nextChapter;
+                      delete updatedDecision.nextScene;
+                      // Then set the new target
+                      handleDecisionChange(index, Object.keys(target)[0], Object.values(target)[0]);
+                    }}
+                    placeholder="Select target chapter or scene..."
+                    onCreateNewScene={(chapterId) => {
+                      const newSceneId = `scene${Object.keys(story.chapters[chapterId].scenes || {}).length + 1}`;
+                      const newScene = {
+                        id: newSceneId,
+                        content: '',
+                        decisions: []
+                      };
+                      
+                      // Create the new scene through the callback
+                      onCreateScene(chapterId, newSceneId, newScene);
+                      return newScene;
+                    }}
+                    onCreateNewChapter={() => {
+                      const newChapterId = `chapter${Object.keys(story.chapters).length + 1}`;
+                      const newChapter = {
+                        title: 'New Chapter',
+                        scenes: {}
+                      };
+                      
+                      onCreateChapter(newChapterId, newChapter);
+                      return { id: newChapterId, ...newChapter };
+                    }}
                   />
                 </div>
                 <button
