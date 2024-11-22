@@ -1,23 +1,27 @@
 import React, { useState, useRef } from 'react';
-import { MessageCircle, Brain, Eye, Edit3, Plus, Trash2, ChevronDown, AlertCircle } from 'lucide-react';
+import { MessageCircle, Brain, Eye, Edit3, Plus, Trash2, ChevronDown, AlertCircle, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { Scene } from './InteractiveStoryViewer';
 
 const ChapterSceneSelector = ({ 
   story,
   value,
   onChange,
-  placeholder = "Select target...",
-  onCreateNewScene,
-  onCreateNewChapter
+  placeholder = "Select target scene...",
+  onCreateNewScene
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Check if the current value is valid
-  const isInvalid = value && (
-    (value.nextChapter && !story.chapters[value.nextChapter]) ||
-    (value.nextScene && !Object.values(story.chapters).some(
-      chapter => Object.keys(chapter.scenes || {}).includes(value.nextScene)
-    ))
+  // Get all available scenes across all chapters
+  const allScenes = Object.entries(story.chapters).reduce((acc, [chapterId, chapter]) => {
+    Object.keys(chapter.scenes || {}).forEach(sceneId => {
+      acc.push({ chapterId, sceneId });
+    });
+    return acc;
+  }, []);
+
+  // Validate if the current scene exists
+  const isInvalid = value && !allScenes.some(
+    scene => scene.sceneId === value
   );
 
   return (
@@ -30,16 +34,12 @@ const ChapterSceneSelector = ({
             ? 'border-red-300 bg-red-50 hover:border-red-400' 
             : 'border-gray-200 hover:border-gray-300'
         }`}
-        title={isInvalid ? 'This target no longer exists in the story' : undefined}
       >
         <span className={`text-sm ${isInvalid ? 'text-red-600' : ''}`}>
-          {value ? (
-            value.nextChapter ? 
-              `Chapter: ${story.chapters[value.nextChapter]?.title || value.nextChapter}${isInvalid ? ' (Invalid)' : ''}` :
-              `Scene: ${value.nextScene}${isInvalid ? ' (Invalid)' : ''}`
-          ) : (
+          {value ? 
+            `Scene: ${value}${isInvalid ? ' (Invalid)' : ''}` :
             <span className="text-gray-500">{placeholder}</span>
-          )}
+          }
         </span>
         <div className="flex items-center gap-2">
           {isInvalid && (
@@ -53,17 +53,10 @@ const ChapterSceneSelector = ({
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
           {Object.entries(story.chapters).map(([chapterId, chapter]) => (
             <div key={chapterId} className="divide-y divide-gray-100">
-              {/* Chapter option */}
-              <button
-                type="button"
-                onClick={() => {
-                  onChange({ nextChapter: chapterId });
-                  setIsOpen(false);
-                }}
-                className="w-full px-3 py-2 text-left hover:bg-purple-50 text-sm font-medium text-gray-900"
-              >
-                Chapter: {chapter.title || chapterId}
-              </button>
+              {/* Chapter header */}
+              <div className="px-3 py-2 text-sm font-medium text-gray-900 bg-gray-50">
+                {chapter.title || chapterId}
+              </div>
               
               {/* Scene options */}
               {Object.entries(chapter.scenes || {}).map(([sceneId, scene]) => (
@@ -71,12 +64,12 @@ const ChapterSceneSelector = ({
                   key={sceneId}
                   type="button"
                   onClick={() => {
-                    onChange({ nextScene: sceneId });
+                    onChange(sceneId);
                     setIsOpen(false);
                   }}
-                  className="w-full px-3 py-2 text-left hover:bg-purple-50 text-sm text-gray-600 pl-6"
+                  className="w-full px-3 py-2 text-left hover:bg-purple-50 text-sm text-gray-600"
                 >
-                  Scene: {scene.id || sceneId}
+                  {sceneId}
                 </button>
               ))}
               
@@ -85,28 +78,15 @@ const ChapterSceneSelector = ({
                 type="button"
                 onClick={() => {
                   const newScene = onCreateNewScene(chapterId);
-                  onChange({ nextScene: newScene.id });
+                  onChange(newScene);
                   setIsOpen(false);
                 }}
-                className="w-full px-3 py-2 text-left hover:bg-purple-50 text-sm text-purple-600 pl-6 font-medium border-t border-gray-100"
+                className="w-full px-3 py-2 text-left hover:bg-purple-50 text-sm text-purple-600 font-medium"
               >
                 + New Scene in this Chapter
               </button>
             </div>
           ))}
-          
-          {/* New Chapter option */}
-          <button
-            type="button"
-            onClick={() => {
-              const newChapter = onCreateNewChapter();
-              onChange({ nextChapter: newChapter.id });
-              setIsOpen(false);
-            }}
-            className="w-full px-3 py-2 text-left hover:bg-purple-50 text-sm text-purple-600 font-medium border-t border-gray-100"
-          >
-            + Create New Chapter
-          </button>
         </div>
       )}
     </div>
@@ -123,7 +103,11 @@ const SceneContentEditor = ({
   onCreateScene 
 }) => {
   const [isPreview, setIsPreview] = useState(false);
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const textareaRef = useRef(null);
+
+  // Get chapter title
+  const chapterTitle = story.chapters[chapterId]?.title || chapterId;
 
   const handleContentChange = (newContent) => {
     onChange(chapterId, sceneId, 'content', newContent);
@@ -131,7 +115,10 @@ const SceneContentEditor = ({
 
   const handleDecisionChange = (index, field, value) => {
     const newDecisions = [...(scene.decisions || [])];
-    newDecisions[index] = { ...newDecisions[index], [field]: value };
+    newDecisions[index] = { 
+      ...newDecisions[index],
+      [field]: value
+    };
     onChange(chapterId, sceneId, 'decisions', newDecisions);
   };
 
@@ -139,7 +126,6 @@ const SceneContentEditor = ({
     const newDecisions = [...(scene.decisions || []), {
       text: '',
       nextScene: '',
-      conditions: []
     }];
     onChange(chapterId, sceneId, 'decisions', newDecisions);
   };
@@ -204,88 +190,124 @@ const SceneContentEditor = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Scene Content Editor */}
-      <div className="rounded-lg border border-gray-200">
-        <div className="flex items-center justify-between p-2 bg-gray-50 border-b border-gray-200">
-          <div className="flex items-center gap-1">
-            {!isPreview ? (
-              <>
-                <button
-                  onClick={toggleDialogue}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors hover:bg-white/50 text-gray-600"
-                  title="Toggle Dialogue"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span className="text-sm">Dialogue</span>
-                </button>
-                <button
-                  onClick={toggleThought}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors hover:bg-white/50 text-gray-600"
-                  title="Toggle Thought"
-                >
-                  <Brain className="w-4 h-4" />
-                  <span className="text-sm">Thought</span>
-                </button>
-              </>
-            ) : (
-              <span className="text-sm text-gray-600 px-3 py-1.5">Scene Preview</span>
-            )}
+    <div className="absolute inset-0 flex flex-col overflow-hidden">
+      {/* Scene Header */}
+      <div className="flex-none bg-white px-4 py-3 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Scene: {sceneId}
+            </h2>
+            <p className="text-sm text-gray-500">
+              Chapter: {chapterTitle}
+            </p>
           </div>
-
           <button
-            onClick={() => setIsPreview(!isPreview)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors hover:bg-white text-gray-600"
+            onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
+            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg lg:hidden"
+            title={isPanelCollapsed ? "Show decisions panel" : "Hide decisions panel"}
           >
-            {isPreview ? (
-              <>
-                <Edit3 className="w-4 h-4" />
-                <span className="text-sm">Edit</span>
-              </>
+            {isPanelCollapsed ? (
+              <PanelRightOpen className="w-5 h-5" />
             ) : (
-              <>
-                <Eye className="w-4 h-4" />
-                <span className="text-sm">Preview</span>
-              </>
+              <PanelRightClose className="w-5 h-5" />
             )}
           </button>
-        </div>
-
-        <div className="relative">
-          {isPreview ? (
-            <div className="p-6 min-h-[300px] bg-gray-50">
-              <Scene scene={scene} showDecisions={false} />
-            </div>
-          ) : (
-            <textarea
-              ref={textareaRef}
-              value={scene.content || ''}
-              onChange={(e) => handleContentChange(e.target.value)}
-              className="w-full min-h-[300px] p-4 resize-y bg-white border-0 focus:ring-0"
-              placeholder="Write your scene content here..."
-            />
-          )}
         </div>
       </div>
 
-      {/* Decisions Editor */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900">Decisions</h3>
-          <button
-            onClick={addDecision}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm text-purple-600 hover:bg-purple-50 rounded-md"
-          >
-            <Plus className="w-4 h-4" />
-            Add Decision
-          </button>
+      {/* Main Content Area */}
+      <div className="flex-1 flex min-h-0">
+        {/* Scene Content Editor */}
+        <div className={`flex-1 flex flex-col min-w-0 ${!isPanelCollapsed && 'lg:border-r'} border-gray-200`}>
+          {/* Editor Toolbar */}
+          <div className="flex-none flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-200">
+            <div className="flex items-center gap-1">
+              {!isPreview ? (
+                <>
+                  <button
+                    onClick={toggleDialogue}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors hover:bg-white/50 text-gray-600"
+                    title="Toggle Dialogue"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span className="text-sm">Dialogue</span>
+                  </button>
+                  <button
+                    onClick={toggleThought}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors hover:bg-white/50 text-gray-600"
+                    title="Toggle Thought"
+                  >
+                    <Brain className="w-4 h-4" />
+                    <span className="text-sm">Thought</span>
+                  </button>
+                </>
+              ) : (
+                <span className="text-sm text-gray-600 px-3 py-1.5">Scene Preview</span>
+              )}
+            </div>
+
+            <button
+              onClick={() => setIsPreview(!isPreview)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors hover:bg-white text-gray-600"
+            >
+              {isPreview ? (
+                <>
+                  <Edit3 className="w-4 h-4" />
+                  <span className="text-sm">Edit</span>
+                </>
+              ) : (
+                <>
+                  <Eye className="w-4 h-4" />
+                  <span className="text-sm">Preview</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Editor/Preview Area */}
+          <div className="flex-1 relative">
+            {isPreview ? (
+              <div className="absolute inset-0 overflow-auto">
+                <div className="p-6 bg-gray-50 min-h-full">
+                  <Scene scene={scene} showDecisions={false} />
+                </div>
+              </div>
+            ) : (
+              <textarea
+                ref={textareaRef}
+                value={scene.content || ''}
+                onChange={(e) => handleContentChange(e.target.value)}
+                className="absolute inset-0 w-full h-full p-4 resize-none bg-white focus:ring-0 border-0"
+                placeholder="Write your scene content here..."
+              />
+            )}
+          </div>
         </div>
 
-        <div className="space-y-4">
-          {(scene.decisions || []).map((decision, index) => (
-            <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 space-y-4">
+        {/* Decisions Panel */}
+        <div className={`
+          bg-white flex flex-col min-h-0
+          ${isPanelCollapsed ? 'hidden lg:flex' : 'flex'}
+          lg:w-96
+        `}>
+          <div className="flex-none px-4 py-3 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium text-gray-900">Decisions</h3>
+              <button
+                onClick={addDecision}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm text-purple-600 hover:bg-purple-50 rounded-md"
+              >
+                <Plus className="w-4 h-4" />
+                Add Decision
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {(scene.decisions || []).map((decision, index) => (
+              <div key={index} className="bg-gray-50 rounded-lg border border-gray-200">
+                <div className="p-4 space-y-4">
                   <input
                     type="text"
                     value={decision.text || ''}
@@ -293,55 +315,45 @@ const SceneContentEditor = ({
                     placeholder="Decision text..."
                     className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
-                  <ChapterSceneSelector
-                    story={story}
-                    value={{ 
-                      nextChapter: decision.nextChapter,
-                      nextScene: decision.nextScene
-                    }}
-                    onChange={(target) => {
-                      // Clear both fields first
-                      const updatedDecision = { ...decision };
-                      delete updatedDecision.nextChapter;
-                      delete updatedDecision.nextScene;
-                      // Then set the new target
-                      handleDecisionChange(index, Object.keys(target)[0], Object.values(target)[0]);
-                    }}
-                    placeholder="Select target chapter or scene..."
-                    onCreateNewScene={(chapterId) => {
-                      const newSceneId = `scene${Object.keys(story.chapters[chapterId].scenes || {}).length + 1}`;
-                      const newScene = {
-                        id: newSceneId,
-                        content: '',
-                        decisions: []
-                      };
-                      
-                      // Create the new scene through the callback
-                      onCreateScene(chapterId, newSceneId, newScene);
-                      return newScene;
-                    }}
-                    onCreateNewChapter={() => {
-                      const newChapterId = `chapter${Object.keys(story.chapters).length + 1}`;
-                      const newChapter = {
-                        title: 'New Chapter',
-                        scenes: {}
-                      };
-                      
-                      onCreateChapter(newChapterId, newChapter);
-                      return { id: newChapterId, ...newChapter };
-                    }}
-                  />
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1">
+                      <ChapterSceneSelector
+                        story={story}
+                        value={decision.nextScene}
+                        onChange={(target) => handleDecisionChange(index, 'nextScene', target)}
+                        placeholder="Select target scene..."
+                        onCreateNewScene={(chapterId) => {
+                          const newSceneId = `scene${Object.keys(story.chapters[chapterId].scenes || {}).length + 1}`;
+                          const newScene = {
+                            content: '',
+                            decisions: []
+                          };
+                          
+                          onCreateScene(chapterId, newSceneId, newScene);
+                          return newSceneId;
+                        }}
+                      />
+                    </div>
+                    <button
+                      onClick={() => removeDecision(index)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-md flex-none"
+                      title="Remove decision"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => removeDecision(index)}
-                  className="p-2 text-red-500 hover:bg-red-50 rounded-md"
-                  title="Remove decision"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
               </div>
-            </div>
-          ))}
+            ))}
+
+            {(scene.decisions || []).length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-gray-500 text-sm">
+                  No decisions yet. Add a decision to create branching paths in your story.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -33,15 +33,12 @@ const hasInvalidDecisions = (scene, story) => {
   if (!scene.decisions) return false;
 
   return scene.decisions.some(decision => {
-    if (decision.nextChapter && !story.chapters[decision.nextChapter]) {
-      return true;
-    }
-    if (decision.nextScene) {
-      return !Object.values(story.chapters).some(
-        chapter => Object.keys(chapter.scenes || {}).includes(decision.nextScene)
-      );
-    }
-    return false;
+    if (!decision.nextScene) return true;
+    
+    // Check if the target scene exists in any chapter
+    return !Object.values(story.chapters).some(
+      chapter => Object.keys(chapter.scenes || {}).includes(decision.nextScene)
+    );
   });
 };
 
@@ -241,7 +238,6 @@ const SortableChapterItem = ({
                 scenes: {
                   ...chapter.scenes,
                   [newSceneId]: {
-                    id: newSceneId,
                     content: '',
                     decisions: []
                   }
