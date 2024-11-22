@@ -5,7 +5,7 @@ import {
   X, LayoutGrid, BookOpen, Plus, Share2
 } from 'lucide-react';
 import { load as yamlLoad, dump as yamlDump } from 'js-yaml';
-import Editor from '@monaco-editor/react';
+import ValidatedYamlEditor from './ValidatedYamlEditor';
 import InteractiveStoryViewer from './InteractiveStoryViewer';
 import SceneContentEditor from './SceneContentEditor';
 import ChaptersTreeDesigner from './ChaptersTreeDesigner';
@@ -452,7 +452,7 @@ const StoryDesigner = () => {
           
           <div className="flex-1 overflow-hidden">
             {showCode ? (
-              <Editor
+              <ValidatedYamlEditor
                 defaultLanguage="yaml"
                 value={yamlDump(story)}
                 onChange={(value) => {
