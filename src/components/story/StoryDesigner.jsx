@@ -410,123 +410,101 @@ const StoryDesigner = () => {
   }, [autoSaveEnabled, isDirty, isSaving, handleSave]);
 
   return (
-    <div className="h-screen bg-gray-50 flex">
-      <Sidebar 
-        isOpen={isSidebarOpen}
-        setIsOpen={setIsSidebarOpen}
-        story={story}
-        updateStory={updateStory}
-        selected={selected}
-        setSelected={setSelected}
-        onImport={handleImport}
-        onExport={handleExport}
-      />
-      
-      <div className="flex-1 flex flex-col min-w-0">
-        <TopBar 
-          title={getCurrentTitle()}
-          isSidebarOpen={isSidebarOpen}
-          setIsSidebarOpen={setIsSidebarOpen}
-          saveStatus={
-            <SaveStatus 
-              error={saveError}
-              isSaving={isSaving}
-              isDirty={isDirty}
-              lastSaved={lastSaved}
-            />
-          }
-          onSave={handleSave}
-          isDirty={isDirty}
-          isSaving={isSaving}
+    <div className="flex flex-col h-[calc(100vh-65px)]">
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar 
+          isOpen={isSidebarOpen}
+          setIsOpen={setIsSidebarOpen}
+          story={story}
+          updateStory={updateStory}
+          selected={selected}
+          setSelected={setSelected}
+          onImport={handleImport}
+          onExport={handleExport}
         />
         
-        <ViewToggle 
-          view={view}
-          showCode={showCode}
-          setView={setView}
-          setShowCode={setShowCode}
-          autoSaveEnabled={autoSaveEnabled}
-          setAutoSaveEnabled={setAutoSaveEnabled}
-        />
-        
-        <div className="flex-1 overflow-hidden relative">
-          {showCode ? (
-            <Editor
-              defaultLanguage="yaml"
-              value={yamlDump(story)}
-              onChange={(value) => {
-                try {
-                  const parsed = yamlLoad(value);
-                  updateStory(parsed);
-                } catch (error) {
-                  console.error('Parse error:', error);
-                }
-              }}
-              options={{
-                minimap: { enabled: false },
-                fontSize: 14,
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                wordWrap: 'on',
-                wrappingIndent: 'indent',
-                tabSize: 2,
-                theme: 'vs-light'
-              }}
-              className="h-full w-full"
-            />
-          ) : view === 'editor' && selected?.type === 'scene' ? (
-            <div className="h-full overflow-y-auto px-4 py-6 md:p-6">
-              <div className="max-w-4xl mx-auto">
-              <SceneContentEditor
-                scene={story.chapters[selected.chapterId]?.scenes[selected.sceneId]}
-                chapterId={selected.chapterId}
-                sceneId={selected.sceneId}
-                onChange={handleSceneUpdate}
-                story={story}
-                onCreateScene={(chapterId, sceneId, sceneData) => {
-                  // Update your story state to include the new scene
-                  setStory(prev => ({
-                    ...prev,
-                    chapters: {
-                      ...prev.chapters,
-                      [chapterId]: {
-                        ...prev.chapters[chapterId],
-                        scenes: {
-                          ...prev.chapters[chapterId].scenes,
-                          [sceneId]: sceneData
-                        }
-                      }
-                    }
-                  }));
-                }}
-                onCreateChapter={(chapterId, chapterData) => {
-                  // Update your story state to include the new chapter
-                  setStory(prev => ({
-                    ...prev,
-                    chapters: {
-                      ...prev.chapters,
-                      [chapterId]: chapterData
-                    }
-                  }));
-                }}
+        <div className="flex-1 flex flex-col min-w-0">
+          <TopBar 
+            title={getCurrentTitle()}
+            isSidebarOpen={isSidebarOpen}
+            setIsSidebarOpen={setIsSidebarOpen}
+            saveStatus={
+              <SaveStatus 
+                error={saveError}
+                isSaving={isSaving}
+                isDirty={isDirty}
+                lastSaved={lastSaved}
               />
+            }
+            onSave={handleSave}
+            isDirty={isDirty}
+            isSaving={isSaving}
+          />
+          
+          <ViewToggle 
+            view={view}
+            showCode={showCode}
+            setView={setView}
+            setShowCode={setShowCode}
+            autoSaveEnabled={autoSaveEnabled}
+            setAutoSaveEnabled={setAutoSaveEnabled}
+          />
+          
+          <div className="flex-1 overflow-hidden">
+            {showCode ? (
+              <Editor
+                defaultLanguage="yaml"
+                value={yamlDump(story)}
+                onChange={(value) => {
+                  try {
+                    const parsed = yamlLoad(value);
+                    updateStory(parsed);
+                  } catch (error) {
+                    console.error('Parse error:', error);
+                  }
+                }}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  lineNumbers: 'on',
+                  scrollBeyondLastLine: false,
+                  wordWrap: 'on',
+                  wrappingIndent: 'indent',
+                  tabSize: 2,
+                  theme: 'vs-light'
+                }}
+                className="h-full w-full"
+              />
+            ) : view === 'editor' && selected?.type === 'scene' ? (
+              <div className="h-full">
+                <SceneContentEditor
+                  scene={story.chapters[selected.chapterId]?.scenes[selected.sceneId]}
+                  chapterId={selected.chapterId}
+                  sceneId={selected.sceneId}
+                  onChange={handleSceneUpdate}
+                  story={story}
+                  onCreateScene={handleCreateScene}
+                  onCreateChapter={() => {}}
+                />
               </div>
-            </div>
-          ) : view === 'preview' ? (
-            <div className="h-full overflow-y-auto">
-              <div className="max-w-4xl mx-auto px-4 py-6 md:p-6">
-                <InteractiveStoryViewer story={story} />
+            ) : view === 'preview' ? (
+              <div className="h-full overflow-auto">
+                <div className="max-w-4xl mx-auto px-4 py-6 md:p-6">
+                  <InteractiveStoryViewer story={story} />
+                </div>
               </div>
-            </div>
-          ) : view === 'graph' ? (
-            <div className="h-full overflow-y-auto">
-              <div className="max-w-4xl mx-auto px-4 py-6 md:p-6">
-                <StoryGraphViewer story={story} />
+            ) : view === 'graph' ? (
+              <div className="h-full overflow-auto">
+                <div className="max-w-4xl mx-auto px-4 py-6 md:p-6">
+                  <StoryGraphViewer story={story} />
+                </div>
               </div>
-            </div>
-          ) : (
-            <EmptyState onCreateScene={handleCreateScene} />
-          )}
+            ) : (
+              <div className="h-full">
+                <EmptyState onCreateScene={handleCreateScene} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

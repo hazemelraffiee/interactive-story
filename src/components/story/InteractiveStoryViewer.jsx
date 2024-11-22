@@ -225,7 +225,7 @@ const InteractiveStoryViewer = ({ story }) => {
 
   return (
     <div
-      className="max-w-full p-4 bg-gray-50 min-h-screen overflow-auto"
+      className="max-w-full p-4 bg-gray-50 overflow-auto"
       style={{ maxHeight: 'calc(100vh - 2rem)' }}
     >
       <header className="mb-6">

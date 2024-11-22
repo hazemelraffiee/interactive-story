@@ -138,7 +138,7 @@ const StoryPlatform = () => {
     switch (currentView) {
       case 'create':
         return (
-          <div className="min-h-screen bg-gray-50">
+          <div className="bg-gray-50">
             <Navigation {...navigationProps} />
             <StoryDesigner onClose={handleBackToBrowse} />
           </div>
@@ -146,7 +146,7 @@ const StoryPlatform = () => {
 
       case 'view':
         return (
-          <div className="min-h-screen bg-gray-50">
+          <div className="bg-gray-50">
             <Navigation {...navigationProps} />
             <InteractiveStoryViewer
               story={selectedStory}
@@ -157,7 +157,7 @@ const StoryPlatform = () => {
 
       case 'favorites':
         return (
-          <div className="min-h-screen bg-gray-50">
+          <div className="bg-gray-50">
             <Navigation {...navigationProps} />
             <FavoritesView {...storyInteractionProps} />
           </div>
@@ -165,7 +165,7 @@ const StoryPlatform = () => {
 
       case 'mystories':
         return (
-          <div className="min-h-screen bg-gray-50">
+          <div className="bg-gray-50">
             <Navigation {...navigationProps} />
             <MyStoriesView
               {...storyInteractionProps}
@@ -179,7 +179,7 @@ const StoryPlatform = () => {
 
       default: // 'browse'
         return (
-          <div className="min-h-screen bg-gray-50">
+          <div className="bg-gray-50">
             <Navigation {...navigationProps} />
 
             {showNotification && (
