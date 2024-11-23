@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   BookOpen, 
   Heart,
@@ -11,14 +12,10 @@ import {
   Menu
 } from 'lucide-react';
 
-const Navigation = ({ 
-  onCreateClick, 
-  onHomeClick, 
-  onMyStoriesClick, 
-  onFavoritesClick 
-}) => {
+const Navigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const mobileMenuRef = useRef(null);
+  const location = useLocation();
 
   // Handle click outside to close menu
   useEffect(() => {
@@ -58,17 +55,17 @@ const Navigation = ({
     {
       label: 'My Stories',
       icon: BookMarked,
-      onClick: onMyStoriesClick
+      to: '/mystories'
     },
     {
       label: 'Favorites',
       icon: Heart,
-      onClick: onFavoritesClick
+      to: '/favorites'
     },
     {
       label: 'Create',
       icon: PenTool,
-      onClick: onCreateClick
+      to: '/create'
     }
   ];
 
@@ -78,7 +75,7 @@ const Navigation = ({
         <div className="flex items-center justify-between h-16">
           {/* Logo and Left Navigation */}
           <div className="flex items-center space-x-4">
-            {/* Mobile Menu Button - Now on the far left */}
+            {/* Mobile Menu Button */}
             <button 
               className="md:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
               onClick={() => setIsMobileMenuOpen(true)}
@@ -88,9 +85,9 @@ const Navigation = ({
             </button>
 
             {/* Logo */}
-            <div 
+            <Link 
+              to="/"
               className="flex-shrink-0 flex items-center cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={onHomeClick}
               role="button"
               aria-label="Return to home"
             >
@@ -101,20 +98,22 @@ const Navigation = ({
                 </div>
               </div>
               <span className="ml-2 text-xl font-bold text-gray-900">StoryLab</span>
-            </div>
+            </Link>
             
             {/* Desktop Navigation */}
             <div className="hidden md:block">
               <div className="flex items-center space-x-4">
                 {navigationItems.map((item) => (
-                  <button 
+                  <Link 
                     key={item.label}
-                    onClick={item.onClick}
-                    className="text-gray-500 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-2"
+                    to={item.to}
+                    className={`text-gray-500 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-2 ${
+                      location.pathname === item.to ? 'text-purple-600' : ''
+                    }`}
                   >
                     <item.icon className="h-5 w-5" />
                     <span>{item.label}</span>
-                  </button>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -159,17 +158,17 @@ const Navigation = ({
           {/* Navigation Items */}
           <div className="px-2 py-3 space-y-1">
             {navigationItems.map((item) => (
-              <button
+              <Link
                 key={item.label}
-                onClick={() => {
-                  item.onClick();
-                  setIsMobileMenuOpen(false);
-                }}
-                className="w-full flex items-center space-x-3 px-4 py-3 text-gray-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg transition-colors"
+                to={item.to}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`w-full flex items-center space-x-3 px-4 py-3 text-gray-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg transition-colors ${
+                  location.pathname === item.to ? 'bg-purple-50 text-purple-600' : ''
+                }`}
               >
                 <item.icon className="h-5 w-5" />
                 <span className="font-medium">{item.label}</span>
-              </button>
+              </Link>
             ))}
           </div>
         </div>

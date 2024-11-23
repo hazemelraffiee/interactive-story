@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import { TrendingUp, Clock, Star } from 'lucide-react';
 
 // Import Components
@@ -9,10 +10,66 @@ import InteractiveStoryViewer from '../../components/story/InteractiveStoryViewe
 import StoryDesigner from '../../components/story/StoryDesigner';
 import StoryCard from '../../components/story/StoryCard';
 import FavoritesView from './FavoritesView';
-import MyStoriesView from './MyStoriesView'
+import MyStoriesView from './MyStoriesView';
+
+const BrowseView = ({ storyInteractionProps, showNotification, setShowNotification, searchQuery, setSearchQuery, selectedGenre, setSelectedGenre, activeFilter, setActiveFilter, featuredStories, likedStories, savedStories }) => (
+  <>
+    {showNotification && (
+      <NotificationToast
+        title="New Story Alert!"
+        message='"The Quantum Paradox" just launched'
+        onClose={() => setShowNotification(false)}
+      />
+    )}
+
+    <HeroSection
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      selectedGenre={selectedGenre}
+      onGenreSelect={setSelectedGenre}
+      onFilterClick={() => console.log('Filter clicked')}
+    />
+
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">Featured Stories</h2>
+        <div className="flex space-x-2">
+          {[
+            { icon: TrendingUp, label: 'trending' },
+            { icon: Clock, label: 'recent' },
+            { icon: Star, label: 'top' }
+          ].map(({ icon: Icon, label }) => (
+            <button
+              key={label}
+              onClick={() => setActiveFilter(label)}
+              className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
+                activeFilter === label
+                  ? 'bg-purple-100 text-purple-600'
+                  : 'hover:bg-gray-100'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span className="capitalize hidden sm:inline">{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {featuredStories.map(story => (
+        <StoryCard
+          key={story.id}
+          story={story}
+          isLiked={likedStories.has(story.id)}
+          isSaved={savedStories.has(story.id)}
+          {...storyInteractionProps}
+        />
+      ))}
+    </div>
+  </>
+);
 
 const StoryPlatform = () => {
-  // State Management
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('trending');
   const [selectedGenre, setSelectedGenre] = useState('all');
@@ -20,7 +77,6 @@ const StoryPlatform = () => {
   const [likedStories, setLikedStories] = useState(new Set());
   const [savedStories, setSavedStories] = useState(new Set());
   const [selectedStory, setSelectedStory] = useState(null);
-  const [currentView, setCurrentView] = useState('browse');
 
   // Demo featured stories data
   const featuredStories = [
@@ -66,7 +122,6 @@ const StoryPlatform = () => {
     }
   ];
 
-  // Effects
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowNotification(true);
@@ -74,7 +129,6 @@ const StoryPlatform = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Event Handlers
   const handleStoryLike = (storyId) => {
     setLikedStories(prev => {
       const newSet = new Set(prev);
@@ -97,35 +151,9 @@ const StoryPlatform = () => {
 
   const handleStoryRead = (story) => {
     setSelectedStory(story);
-    setCurrentView('view');
+    navigate(`/story/${story.id}`);
   };
 
-  const handleCreateClick = () => {
-    setCurrentView('create');
-  };
-
-  const handleFavoritesClick = () => {
-    setCurrentView('favorites');
-  };
-
-  const handleMyStoriesClick = () => {
-    setCurrentView('mystories');
-  };
-
-  const handleBackToBrowse = () => {
-    setCurrentView('browse');
-    setSelectedStory(null);
-  };
-
-  // Navigation props that will be consistent across all views
-  const navigationProps = {
-    onCreateClick: handleCreateClick,
-    onHomeClick: handleBackToBrowse,
-    onFavoritesClick: handleFavoritesClick,
-    onMyStoriesClick: handleMyStoriesClick
-  };
-
-  // Story interaction props that will be consistent across views
   const storyInteractionProps = {
     onStoryRead: handleStoryRead,
     onLike: handleStoryLike,
@@ -133,114 +161,39 @@ const StoryPlatform = () => {
     onShare: handleStoryShare
   };
 
-  // Render different views based on currentView state
-  const renderContent = () => {
-    switch (currentView) {
-      case 'create':
-        return (
-          <div className="bg-gray-50">
-            <Navigation {...navigationProps} />
-            <StoryDesigner onClose={handleBackToBrowse} />
-          </div>
-        );
-
-      case 'view':
-        return (
-          <div className="bg-gray-50">
-            <Navigation {...navigationProps} />
-            <InteractiveStoryViewer
-              story={selectedStory}
-              onClose={handleBackToBrowse}
-            />
-          </div>
-        );
-
-      case 'favorites':
-        return (
-          <div className="bg-gray-50">
-            <Navigation {...navigationProps} />
-            <FavoritesView {...storyInteractionProps} />
-          </div>
-        );
-
-      case 'mystories':
-        return (
-          <div className="bg-gray-50">
-            <Navigation {...navigationProps} />
-            <MyStoriesView
-              {...storyInteractionProps}
-              onEdit={(story) => {
-                setSelectedStory(story);
-                setCurrentView('create');
-              }}
-            />
-          </div>
-        );
-
-      default: // 'browse'
-        return (
-          <div className="bg-gray-50">
-            <Navigation {...navigationProps} />
-
-            {showNotification && (
-              <NotificationToast
-                title="New Story Alert!"
-                message='"The Quantum Paradox" just launched'
-                onClose={() => setShowNotification(false)}
-              />
-            )}
-
-            <HeroSection
+  return (
+    <div className="bg-gray-50">
+      <Navigation />
+      <Routes>
+        <Route 
+          path="/" 
+          element={
+            <BrowseView 
+              storyInteractionProps={storyInteractionProps}
+              showNotification={showNotification}
+              setShowNotification={setShowNotification}
               searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
+              setSearchQuery={setSearchQuery}
               selectedGenre={selectedGenre}
-              onGenreSelect={setSelectedGenre}
-              onFilterClick={() => console.log('Filter clicked')}
+              setSelectedGenre={setSelectedGenre}
+              activeFilter={activeFilter}
+              setActiveFilter={setActiveFilter}
+              featuredStories={featuredStories}
+              likedStories={likedStories}
+              savedStories={savedStories}
             />
-
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Featured Stories</h2>
-                <div className="flex space-x-2">
-                  {[
-                    { icon: TrendingUp, label: 'trending' },
-                    { icon: Clock, label: 'recent' },
-                    { icon: Star, label: 'top' }
-                  ].map(({ icon: Icon, label }) => (
-                    <button
-                      key={label}
-                      onClick={() => setActiveFilter(label)}
-                      className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${activeFilter === label
-                        ? 'bg-purple-100 text-purple-600'
-                        : 'hover:bg-gray-100'
-                        }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span className="capitalize hidden sm:inline">{label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {featuredStories.map(story => (
-                <StoryCard
-                  key={story.id}
-                  story={story}
-                  isLiked={likedStories.has(story.id)}
-                  isSaved={savedStories.has(story.id)}
-                  onLike={() => handleStoryLike(story.id)}
-                  onSave={() => handleStorySave(story.id)}
-                  onShare={() => handleStoryShare(story)}
-                  onReadClick={() => handleStoryRead(story)}
-                />
-              ))}
-            </div>
-          </div>
-        );
-    }
-  };
-
-  return renderContent();
+          } 
+        />
+        <Route path="/create" element={<StoryDesigner />} />
+        <Route path="/mystories" element={<MyStoriesView {...storyInteractionProps} />} />
+        <Route path="/favorites" element={<FavoritesView {...storyInteractionProps} />} />
+        <Route 
+          path="/story/:storyId" 
+          element={<InteractiveStoryViewer story={selectedStory} />} 
+        />
+      </Routes>
+    </div>
+  );
 };
 
 export default StoryPlatform;
