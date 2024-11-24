@@ -1,6 +1,21 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
+const readingProgressSchema = new mongoose.Schema({
+  story: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Story',
+    required: true
+  },
+  currentChapter: String,
+  currentScene: String,
+  progress: Number,
+  lastRead: {
+    type: Date,
+    default: Date.now
+  }
+});
+
 const userSchema = new mongoose.Schema({
   username: {
     type: String,
@@ -21,12 +36,19 @@ const userSchema = new mongoose.Schema({
     required: true,
     minlength: 6
   },
-  avatar: String,
-  bio: String,
+  avatar: {
+    type: String,
+    default: '' // Default avatar URL could be set here
+  },
+  bio: {
+    type: String,
+    default: ''
+  },
   favoriteStories: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Story'
   }],
+  readingHistory: [readingProgressSchema],
   createdAt: {
     type: Date,
     default: Date.now
