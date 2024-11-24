@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   BookOpen, 
   Heart,
@@ -10,14 +10,21 @@ import {
   BookMarked,
   Menu,
   Moon,
-  Sun
+  Sun,
+  LogOut,
+  ChevronDown
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const Navigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const mobileMenuRef = useRef(null);
+  const userMenuRef = useRef(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const [isDark, setIsDark] = useState(true);
+  const { user, logout } = useAuth();
 
   const toggleTheme = () => {
     setIsDark(!isDark);
@@ -28,39 +35,48 @@ const Navigation = () => {
     }
   };  
 
-  // Handle click outside to close menu
+  // Handle click outside to close menus
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
         setIsMobileMenuOpen(false);
       }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setIsUserMenuOpen(false);
+      }
     };
 
-    if (isMobileMenuOpen) {
+    if (isMobileMenuOpen || isUserMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isMobileMenuOpen]);
+  }, [isMobileMenuOpen, isUserMenuOpen]);
 
   // Handle escape key
   useEffect(() => {
     const handleEscape = (event) => {
       if (event.key === 'Escape') {
         setIsMobileMenuOpen(false);
+        setIsUserMenuOpen(false);
       }
     };
 
-    if (isMobileMenuOpen) {
+    if (isMobileMenuOpen || isUserMenuOpen) {
       document.addEventListener('keydown', handleEscape);
     }
 
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [isMobileMenuOpen]);
+  }, [isMobileMenuOpen, isUserMenuOpen]);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const navigationItems = [
     {
@@ -132,18 +148,60 @@ const Navigation = () => {
 
           {/* Right Navigation */}
           <div className="flex items-center space-x-4">
-          <button 
-            onClick={toggleTheme}
-            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
-          >
-            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
-            <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
-              <Settings className="h-5 w-5" />
+            <button 
+              onClick={toggleTheme}
+              className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
+            >
+              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
-            <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center">
-              <User className="h-5 w-5 text-purple-600" />
-            </div>
+
+            {user ? (
+              <div className="relative" ref={userMenuRef}>
+                <button 
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100"
+                >
+                  <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center">
+                    <User className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <span className="hidden md:block text-sm font-medium text-gray-700">
+                    {user.username}
+                  </span>
+                  <ChevronDown className="hidden md:block w-4 h-4 text-gray-500" />
+                </button>
+
+                {/* User Dropdown Menu */}
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
+                    <div className="px-4 py-2 border-b border-gray-200">
+                      <p className="text-sm font-medium text-gray-900">{user.username}</p>
+                      <p className="text-sm text-gray-500">{user.email}</p>
+                    </div>
+                    <Link
+                      to="/settings"
+                      className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span>Settings</span>
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="px-4 py-2 text-sm font-medium text-purple-600 hover:bg-purple-50 rounded-lg"
+              >
+                Login
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -169,6 +227,20 @@ const Navigation = () => {
             </div>
           </div>
 
+          {user && (
+            <div className="px-4 py-3 border-b border-gray-200">
+              <div className="flex items-center">
+                <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center">
+                  <User className="h-6 w-6 text-purple-600" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-900">{user.username}</p>
+                  <p className="text-sm text-gray-500">{user.email}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Navigation Items */}
           <div className="px-2 py-3 space-y-1">
             {navigationItems.map((item) => (
@@ -184,6 +256,38 @@ const Navigation = () => {
                 <span className="font-medium">{item.label}</span>
               </Link>
             ))}
+
+            {user ? (
+              <>
+                <Link
+                  to="/settings"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full flex items-center space-x-3 px-4 py-3 text-gray-600 hover:bg-purple-50 hover:text-purple-600 rounded-lg"
+                >
+                  <Settings className="h-5 w-5" />
+                  <span className="font-medium">Settings</span>
+                </Link>
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full flex items-center space-x-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg"
+                >
+                  <LogOut className="h-5 w-5" />
+                  <span className="font-medium">Logout</span>
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-full flex items-center space-x-3 px-4 py-3 text-purple-600 hover:bg-purple-50 rounded-lg"
+              >
+                <User className="h-5 w-5" />
+                <span className="font-medium">Login</span>
+              </Link>
+            )}
           </div>
         </div>
       </div>
