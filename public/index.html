@@ -23,15 +23,17 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
   <title>StoryLab</title>
-  <script>
-    (function () {
-      // Check if we have a redirect path stored
+  <script type="text/javascript">
+    (function() {
       const redirect = sessionStorage.getItem('redirect');
       if (redirect) {
-        // Remove the stored path
         sessionStorage.removeItem('redirect');
-        // Push the path to history
-        window.history.pushState(null, null, redirect);
+        const basename = '/interactive-story';
+        // Only redirect if we're on the base path
+        if (window.location.pathname === basename) {
+          const newPath = basename + redirect;
+          window.history.replaceState(null, null, newPath);
+        }
       }
     })();
   </script>

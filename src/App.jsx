@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 
@@ -15,7 +15,7 @@ const App = () => {
   }, []);
 
   return (
-    <BrowserRouter basename="/interactive-story">
+    <HashRouter>
       <AuthProvider>
         <Routes>
           {/* Public Routes */}
@@ -33,7 +33,7 @@ const App = () => {
           />
         </Routes>
       </AuthProvider>
-    </BrowserRouter>
+    </HashRouter>
   );
 };
 

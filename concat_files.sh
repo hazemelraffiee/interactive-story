@@ -2,6 +2,8 @@
 
 # List of file paths and glob patterns
 patterns=(
+    "/src/*.jsx"
+    "/src/*.js"
     "/src/**/*.jsx"
     "/src/**/*.js"
 	"/src/**/*.css"
