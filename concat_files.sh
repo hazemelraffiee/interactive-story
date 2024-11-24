@@ -8,6 +8,8 @@ patterns=(
     "/src/**/*.svg"
     "tailwind.config.js",
     ".github/workflows/node.js.yml"
+    "/backend/*.js"
+    "/backend/**/*.js"
 )
 
 # Output file
