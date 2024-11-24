@@ -1,6 +1,6 @@
 # Interactive Story Platform 📚✨
 
-A modern web application for creating, sharing, and experiencing interactive stories. Built with React and Firebase, this platform enables authors to craft branching narratives while readers enjoy making choices that shape their reading experience.
+A modern web application for creating, sharing, and experiencing interactive stories. Built with React and MongoDB, this platform enables authors to craft branching narratives while readers enjoy making choices that shape their reading experience.
 
 **Live Demo:** [Interactive Story Platform](https://hazemelraffiee.github.io/interactive-story)
 
@@ -22,26 +22,55 @@ A modern web application for creating, sharing, and experiencing interactive sto
 
 ## Tech Stack 🛠️
 
-- **Frontend:**
-  - React.js 18
-  - Tailwind CSS 3
-  - Lucide Icons
-  - DND Kit (drag and drop)
-  - Monaco Editor
-  - React Router DOM
+### Frontend:
+- React.js 18
+- Tailwind CSS 3
+- Lucide Icons
+- DND Kit (drag and drop)
+- Monaco Editor
+- React Router DOM
+- Axios for API calls
 
-- **Backend:**
-  - Firebase Authentication
-  - Cloud Firestore
-  - Firebase Storage
-  - Firebase Security Rules
+### Backend:
+- Node.js & Express
+- MongoDB with Mongoose
+- JWT for Authentication
+- CORS
+- bcrypt for password hashing
+
+### Deployment:
+- Frontend: GitHub Pages
+- Backend: Render.com
+- Database: MongoDB Atlas
+
+## Project Structure 📁
+
+```
+interactive-story/          # Root repository (Frontend)
+├── src/
+│   ├── components/
+│   │   ├── common/      # Reusable UI components
+│   │   ├── layout/      # Layout components
+│   │   ├── sections/    # Page sections
+│   │   └── story/       # Story-related components
+│   └── pages/           # Page components
+├── package.json
+│
+└── backend/             # Backend directory
+    ├── server/
+    │   ├── index.js     # Entry point
+    │   ├── middleware/  # Middleware
+    │   ├── models/      # Database models
+    │   └── routes/      # API routes
+    └── package.json
+```
 
 ## Getting Started 🚀
 
 ### Prerequisites
 - Node.js (v18 or higher)
 - npm/yarn
-- Firebase account
+- MongoDB Atlas account
 
 ### Installation
 
@@ -51,68 +80,95 @@ git clone https://github.com/hazemelraffiee/interactive-story.git
 cd interactive-story
 ```
 
-2. Install dependencies:
+2. Install Frontend Dependencies (from root directory):
 ```bash
 npm install
 ```
 
-3. Create a `.env` file in the project root and add your Firebase configuration:
-```env
-REACT_APP_FIREBASE_API_KEY=your_api_key
-REACT_APP_FIREBASE_AUTH_DOMAIN=your_auth_domain
-REACT_APP_FIREBASE_PROJECT_ID=your_project_id
-REACT_APP_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
-REACT_APP_FIREBASE_APP_ID=your_app_id
+3. Install Backend Dependencies:
+```bash
+cd backend
+npm install
 ```
 
-4. Start the development server:
+4. Create a `.env` file in the backend directory:
+```env
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_secure_random_string
+NODE_ENV=development
+PORT=5000
+CORS_ORIGIN=http://localhost:3000
+```
+
+5. Create a `.env` file in the root directory for frontend:
+```env
+REACT_APP_API_URL=http://localhost:5000
+```
+
+6. Start the development servers:
+
+Backend:
+```bash
+cd backend
+npm run dev
+```
+
+Frontend (in a new terminal, from root directory):
 ```bash
 npm start
 ```
 
 ### Building for Production
 
+Frontend (from root directory):
 ```bash
 npm run build
 ```
 
-### Deployment
-
-The project is automatically deployed to GitHub Pages when changes are pushed to the main branch. You can also manually deploy using:
-
+Backend:
 ```bash
-npm run deploy
+cd backend
+npm run build
 ```
 
-## Project Structure 📁
+## API Documentation 📚
 
-```
-src/
-├── components/
-│   ├── auth/          # Authentication components
-│   ├── common/        # Reusable UI components
-│   │   ├── AchievementBadge.jsx
-│   │   ├── GenrePills.jsx
-│   │   ├── NotificationToast.jsx
-│   │   ├── ProgressBar.jsx
-│   │   └── SearchBar.jsx
-│   ├── layout/
-│   │   └── Navigation.jsx
-│   ├── sections/
-│   │   └── HeroSection.jsx
-│   └── story/
-│       ├── ChaptersTreeDesigner.jsx
-│       ├── InteractiveStoryViewer.jsx
-│       ├── SceneContentEditor.jsx
-│       └── StoryCard.jsx
-├── pages/
-│   └── StoryPlatform/
-│       ├── FavoritesView.jsx
-│       ├── MyStoriesView.jsx
-│       └── StoryPlatform.jsx
-└── firebase/         # Firebase configuration
-```
+### Authentication
+- POST `/api/auth/register` - Register new user
+- POST `/api/auth/login` - User login
+- GET `/api/auth/me` - Get current user
+
+### Stories
+- GET `/api/stories` - Get all stories
+- GET `/api/stories/:id` - Get single story
+- POST `/api/stories` - Create new story
+- PUT `/api/stories/:id` - Update story
+- DELETE `/api/stories/:id` - Delete story
+- POST `/api/stories/:id/like` - Toggle story like
+
+### Users
+- GET `/api/users/profile` - Get user profile
+- PUT `/api/users/profile` - Update profile
+- GET `/api/users/favorites` - Get favorite stories
+- GET `/api/users/reading-history` - Get reading history
+- POST `/api/users/reading-progress` - Update reading progress
+
+## Deployment Guides 🚀
+
+### Frontend Deployment (GitHub Pages)
+The frontend is automatically deployed to GitHub Pages using GitHub Actions. Every push to the main branch triggers a build and deployment.
+
+### Backend Deployment (Render.com)
+1. Create a new Web Service on Render
+2. Connect your GitHub repository
+3. Set the following environment variables in Render dashboard:
+   - `MONGODB_URI`
+   - `JWT_SECRET`
+   - `NODE_ENV=production`
+   - `PORT=10000`
+   - `CORS_ORIGIN=https://hazemelraffiee.github.io`
+4. Set build command: `cd backend && npm install`
+5. Set start command: `cd backend && node server/index.js`
 
 ## Key Components 🔑
 
@@ -156,12 +212,6 @@ git push origin feature/amazing-feature
 ```
 5. Open a Pull Request
 
-## Automatic Deployment 🚀
-
-This project uses GitHub Actions for continuous deployment. Every push to the main branch automatically triggers a build and deployment to GitHub Pages.
-
-The deployment workflow can be found in `.github/workflows/deploy.yml`.
-
 ## License 📄
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -172,6 +222,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Lucide](https://lucide.dev) for the beautiful icons
 - [DND Kit](https://dndkit.com) for drag and drop functionality
 - [Monaco Editor](https://microsoft.github.io/monaco-editor/) for the code editor
+- [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) for database hosting
+- [Render](https://render.com) for backend hosting
 
 ## Support 💪
 
