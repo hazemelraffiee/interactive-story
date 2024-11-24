@@ -6,11 +6,12 @@ import {
   Globe, 
   Lock,
   Copy,
-  Archive,
+  Archive
 } from 'lucide-react';
 import StoryCard from '../../components/story/StoryCard';
 
 const MyStoriesView = ({ onStoryRead, onLike, onSave, onShare, onEdit }) => {
+
   // Demo data for my stories
   const [myStories, setMyStories] = useState([
     {
