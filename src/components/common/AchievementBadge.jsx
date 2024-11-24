@@ -14,9 +14,9 @@ const AchievementBadge = ({ achievement }) => {
   };
 
   return (
-    <div className="flex items-center space-x-2 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm">
+    <div className="flex items-center space-x-2 bg-gray-100 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm">
       {getIcon()}
-      <span className="text-sm font-medium">{achievement}</span>
+      <span className="text-sm font-medium text-gray-800">{achievement}</span>
     </div>
   );
 };

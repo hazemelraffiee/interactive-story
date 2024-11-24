@@ -4,18 +4,29 @@ import {
   BookOpen, 
   Heart,
   PenTool, 
-  Coffee, 
   Settings, 
   User,
   Zap,
   BookMarked,
-  Menu
+  Menu,
+  Moon,
+  Sun
 } from 'lucide-react';
 
 const Navigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const mobileMenuRef = useRef(null);
   const location = useLocation();
+  const [isDark, setIsDark] = useState(true);
+
+  const toggleTheme = () => {
+    setIsDark(!isDark);
+    if (!isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };  
 
   // Handle click outside to close menu
   useEffect(() => {
@@ -121,9 +132,12 @@ const Navigation = () => {
 
           {/* Right Navigation */}
           <div className="flex items-center space-x-4">
-            <button className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg">
-              <Coffee className="h-5 w-5" />
-            </button>
+          <button 
+            onClick={toggleTheme}
+            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
+          >
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
             <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
               <Settings className="h-5 w-5" />
             </button>
