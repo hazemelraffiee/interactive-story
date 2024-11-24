@@ -1,5 +1,3 @@
-# .github/workflows/deploy.yml
-
 name: Deploy to GitHub Pages
 
 on:
@@ -39,6 +37,7 @@ jobs:
         run: npm run build
         env:
           PUBLIC_URL: '/${{ github.event.repository.name }}'
+          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
