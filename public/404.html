@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Redirecting...</title>
+    <script>
+        // Get the current path excluding the basename
+        const basename = '/interactive-story';
+        const path = window.location.pathname.replace(basename, '');
+        
+        // Store the path in session storage
+        sessionStorage.setItem('redirect', path);
+        
+        // Redirect to the main page
+        window.location.replace(basename);
+    </script>
+</head>
+<body>
+    Redirecting...
+</body>
+</html>
