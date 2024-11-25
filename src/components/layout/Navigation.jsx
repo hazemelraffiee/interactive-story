@@ -9,12 +9,11 @@ import {
   Zap,
   BookMarked,
   Menu,
-  Moon,
-  Sun,
   LogOut,
   ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { DarkModeSwitch } from 'react-toggle-dark-mode';
 
 const Navigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -23,17 +22,7 @@ const Navigation = () => {
   const userMenuRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const [isDark, setIsDark] = useState(true);
   const { user, logout } = useAuth();
-
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-    if (!isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };  
 
   // Handle click outside to close menus
   useEffect(() => {
@@ -96,6 +85,29 @@ const Navigation = () => {
     }
   ];
 
+  // Initialize as dark
+  const [isDark, setIsDark] = useState(true);
+
+  // Set initial theme on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Force dark mode by default
+      document.documentElement.classList.add('dark');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    if (typeof window !== 'undefined') {
+      const isCurrentlyDark = document.documentElement.classList.contains('dark');
+      if (isCurrentlyDark) {
+        document.documentElement.classList.remove('dark');
+      } else {
+        document.documentElement.classList.add('dark');
+      }
+      setIsDark(!isCurrentlyDark);
+    }
+  };
+
   return (
     <nav className="bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -148,12 +160,13 @@ const Navigation = () => {
 
           {/* Right Navigation */}
           <div className="flex items-center space-x-4">
-            <button 
-              onClick={toggleTheme}
-              className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
-            >
-              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
+            <DarkModeSwitch
+              checked={isDark}
+              onChange={toggleTheme}
+              size={30}
+              sunColor="orange"
+              moonColor="white"
+            />
 
             {user ? (
               <div className="relative" ref={userMenuRef}>
