@@ -164,4 +164,39 @@ router.patch('/:id/status', auth, async (req, res) => {
   }
 });
 
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    // First, find the story to check ownership
+    const story = await Story.findById(req.params.id);
+    
+    if (!story) {
+      return res.status(404).json({ 
+        message: 'Story not found'
+      });
+    }
+
+    // Check if the user owns the story
+    if (story.author.toString() !== req.user.userId) {
+      return res.status(403).json({ 
+        message: 'Not authorized to delete this story' 
+      });
+    }
+
+    // If we get here, the user is authorized to delete the story
+    await Story.findByIdAndDelete(req.params.id);
+
+    // Return a success response
+    res.json({ 
+      message: 'Story deleted successfully',
+      deletedStoryId: req.params.id
+    });
+  } catch (error) {
+    console.error('Error deleting story:', error);
+    res.status(500).json({ 
+      message: 'Error deleting story', 
+      error: error.message 
+    });
+  }
+});
+
 export default router;

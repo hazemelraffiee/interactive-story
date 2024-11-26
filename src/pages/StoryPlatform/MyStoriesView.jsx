@@ -54,13 +54,13 @@ const MyStoriesView = () => {
     if (!window.confirm('Are you sure you want to delete this story? This action cannot be undone.')) {
       return;
     }
-
+  
     try {
       await storyService.deleteStory(storyId);
       setMyStories(stories => stories.filter(story => story._id !== storyId));
       showNotification('Success', 'Story deleted successfully');
     } catch (error) {
-      showNotification('Error', 'Failed to delete story');
+      showNotification('Error', `Failed to delete story: ${error.message}`);
     }
   };
 
