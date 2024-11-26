@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, ArrowLeft, Mail } from 'lucide-react';
 import NotificationToast from '../../components/common/NotificationToast';
-import { authService } from '../../services/authService';
+import authService from '../../services/authService';
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');

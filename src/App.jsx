@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/layout/ProtectedRoute';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 
 // Pages
 import LoginPage from './pages/auth/LoginPage';
@@ -18,19 +20,15 @@ const App = () => {
     <HashRouter>
       <AuthProvider>
         <Routes>
-          {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-
-          {/* Protected Routes - everything under StoryPlatform */}
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <StoryPlatform />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />          
+          <Route path="/*" element={
+            <ProtectedRoute>
+              <StoryPlatform />
+            </ProtectedRoute>
+          } />
         </Routes>
       </AuthProvider>
     </HashRouter>

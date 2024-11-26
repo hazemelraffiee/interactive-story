@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { BookOpen, ArrowLeft, Lock } from 'lucide-react';
 import NotificationToast from '../../components/common/NotificationToast';
-import { authService } from '../../services/authService';
+import authService from '../../services/authService';
 
 const ResetPasswordPage = () => {
   const [password, setPassword] = useState('');
