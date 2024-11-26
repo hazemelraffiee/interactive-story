@@ -49,6 +49,12 @@ const userSchema = new mongoose.Schema({
     ref: 'Story'
   }],
   readingHistory: [readingProgressSchema],
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
+  lastLoginDate: {
+    type: Date,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -71,6 +77,14 @@ userSchema.pre('save', async function(next) {
 // Password comparison method
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
+};
+
+// Generate password reset token
+userSchema.methods.generatePasswordResetToken = function() {
+  const token = crypto.randomBytes(32).toString('hex');
+  this.resetPasswordToken = token;
+  this.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+  return token;
 };
 
 export default mongoose.model('User', userSchema);

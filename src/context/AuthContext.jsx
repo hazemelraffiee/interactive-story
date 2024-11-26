@@ -1,3 +1,5 @@
+// ./src/context/AuthContext.jsx
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../services/authService';
 
@@ -10,13 +12,17 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const token = localStorage.getItem('token');
+        // Check both localStorage and sessionStorage for token
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         if (token) {
           const userData = await authService.getCurrentUser();
           setUser(userData);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
+        // Clear tokens if there's an error
+        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
       } finally {
         setLoading(false);
       }
@@ -56,12 +62,38 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const forgotPassword = async (email) => {
+    try {
+      const response = await authService.forgotPassword(email);
+      return { success: true, message: response.message };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to process request'
+      };
+    }
+  };
+
+  const resetPassword = async (token, password) => {
+    try {
+      const response = await authService.resetPassword(token, password);
+      return { success: true, message: response.message };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to reset password'
+      };
+    }
+  };
+
   const value = {
     user,
     loading,
     login,
     register,
-    logout
+    logout,
+    forgotPassword,
+    resetPassword
   };
 
   return (
