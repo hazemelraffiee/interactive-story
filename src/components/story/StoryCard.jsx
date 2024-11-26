@@ -12,17 +12,28 @@ const StoryCard = ({
   onShare,
   onReadClick
 }) => {
+  // Safely access nested stats with default values
+  const stats = story?.stats || {};
+  const views = stats.views || 0;
+  const likes = stats.likes || 0;
+  const comments = stats.comments || 0;
+  const completionRate = stats.completionRate || 0;
+
+  // Get author information, handling both string and object cases
+  const authorName = typeof story.author === 'object' ? story.author.username : story.author;
+  const authorAvatar = story.author?.avatar;
+
   return (
     <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-8 hover:shadow-md transition-shadow">
       <div className="md:flex">
         <div className="md:flex-1 relative group">
           <img 
-            src={story.thumbnail}
+            src={story.thumbnail || "/api/placeholder/800/400"}
             alt={story.title}
             className="w-full h-64 md:h-full object-cover transition-transform group-hover:scale-105"
           />
           <div className="absolute top-4 left-4 flex flex-col space-y-2">
-            {story.achievements.map((achievement, index) => (
+            {story.achievements?.map((achievement, index) => (
               <AchievementBadge 
                 key={index} 
                 achievement={achievement} 
@@ -39,7 +50,16 @@ const StoryCard = ({
                 {story.title}
               </h3>
               <div className="flex items-center space-x-2 mt-1">
-                <span className="text-gray-600">by {story.author}</span>
+                <div className="flex items-center space-x-2">
+                  {authorAvatar && (
+                    <img 
+                      src={authorAvatar} 
+                      alt={authorName}
+                      className="w-6 h-6 rounded-full"
+                    />
+                  )}
+                  <span className="text-gray-600">by {authorName}</span>
+                </div>
                 {story.authorBadge && (
                   <div className="flex items-center space-x-1 px-2 py-0.5 bg-purple-50 rounded-full">
                     <BadgeCheck className="w-4 h-4 text-purple-600" />
@@ -81,7 +101,7 @@ const StoryCard = ({
           
           {/* Tags */}
           <div className="mt-4 flex flex-wrap gap-2">
-            {story.tags.map(tag => (
+            {story.tags?.map(tag => (
               <span 
                 key={tag}
                 className="px-3 py-1 text-sm font-medium bg-purple-50 text-purple-600 rounded-full cursor-pointer hover:bg-purple-100 transition-colors"
@@ -97,34 +117,34 @@ const StoryCard = ({
               <div className="flex space-x-4">
                 <div className="flex items-center space-x-1">
                   <Eye className="w-4 h-4 text-gray-500" />
-                  <span className="text-gray-600">{story.views.toLocaleString()}</span>
+                  <span className="text-gray-600">{views.toLocaleString()}</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <Heart className="w-4 h-4 text-gray-500" />
-                  <span className="text-gray-600">{story.likes.toLocaleString()}</span>
+                  <span className="text-gray-600">{likes.toLocaleString()}</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <MessageCircle className="w-4 h-4 text-gray-500" />
-                  <span className="text-gray-600">{story.comments}</span>
+                  <span className="text-gray-600">{comments.toLocaleString()}</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <Copy className="w-4 h-4 text-gray-500" />
-                  <span className="text-gray-600">{story.forks}</span>
+                  <span className="text-gray-600">{(story.forks || 0).toLocaleString()}</span>
                 </div>
               </div>
-              <span className="text-sm text-gray-500">{story.readTime} read</span>
+              <span className="text-sm text-gray-500">{story.readTime || '5 min'} read</span>
             </div>
 
             {/* Progress Bar */}
             <ProgressBar 
-              value={story.completionRate}
+              value={completionRate}
               label="Completion Rate"
             />
 
             {/* Quick Actions */}
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-500">
-                Last active {story.lastActive}
+                Last active {story.lastActive || 'recently'}
               </span>
               <button 
                 onClick={onReadClick}

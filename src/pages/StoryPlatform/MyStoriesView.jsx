@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   BookOpen, 
   Edit3, 
@@ -6,103 +7,111 @@ import {
   Globe, 
   Lock,
   Copy,
-  Archive
+  Archive,
+  Loader
 } from 'lucide-react';
 import StoryCard from '../../components/story/StoryCard';
+import NotificationToast from '../../components/common/NotificationToast';
+import storyService from '../../services/storyService';
 
-const MyStoriesView = ({ onStoryRead, onLike, onSave, onShare, onEdit }) => {
+const MyStoriesView = () => {
+  const navigate = useNavigate();
+  const [myStories, setMyStories] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [notification, setNotification] = useState(null);
+  
+  // Fetch stories on mount
+  useEffect(() => {
+    const fetchStories = async () => {
+      try {
+        setIsLoading(true);
+        const stories = await storyService.getMyStories();
+        setMyStories(stories);
+      } catch (error) {
+        showNotification('Error', 'Failed to fetch stories');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchStories();
+  }, []);
 
-  // Demo data for my stories
-  const [myStories, setMyStories] = useState([
-    {
-      id: 'my-story-1',
-      title: "The Digital Labyrinth",
-      author: "Current User",
-      authorBadge: "Creator",
-      excerpt: "A mind-bending journey through a virtual maze where reality and code intertwine...",
-      likes: 3421,
-      views: 12567,
-      forks: 234,
-      thumbnail: "/api/placeholder/800/400",
-      tags: ["Sci-Fi", "Technology", "Mystery"],
-      readTime: "25 min",
-      rating: 4.6,
-      reviewCount: 342,
-      completionRate: 78,
-      achievements: ["Rising Star"],
-      comments: 156,
-      lastActive: "1 hour ago",
-      isPrivate: false,
-      status: 'published'
-    },
-    {
-      id: 'my-story-2',
-      title: "Quantum Dreams",
-      author: "Current User",
-      authorBadge: "Creator",
-      excerpt: "Explore the boundaries of consciousness in a world where quantum computing meets human imagination...",
-      likes: 1234,
-      views: 8901,
-      forks: 123,
-      thumbnail: "/api/placeholder/800/400",
-      tags: ["Sci-Fi", "Philosophy"],
-      readTime: "15 min",
-      rating: 4.8,
-      reviewCount: 234,
-      completionRate: 92,
-      achievements: ["Editor's Pick"],
-      comments: 89,
-      lastActive: "3 days ago",
-      isPrivate: true,
-      status: 'draft'
+  const showNotification = (title, message) => {
+    setNotification({ title, message });
+    setTimeout(() => setNotification(null), 5000);
+  };
+
+  const handleCreateNew = () => {
+    navigate('/create');
+  };
+
+  const handleEdit = (story) => {
+    navigate('/create', { state: { storyId: story._id } });
+  };
+
+  const handleDeleteStory = async (storyId) => {
+    if (!window.confirm('Are you sure you want to delete this story? This action cannot be undone.')) {
+      return;
     }
-  ]);
 
-  const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'published', 'draft', 'archived'
-
-  // Story management handlers
-  const handleDeleteStory = (storyId) => {
-    if (window.confirm('Are you sure you want to delete this story? This action cannot be undone.')) {
-      setMyStories(stories => stories.filter(story => story.id !== storyId));
+    try {
+      await storyService.deleteStory(storyId);
+      setMyStories(stories => stories.filter(story => story._id !== storyId));
+      showNotification('Success', 'Story deleted successfully');
+    } catch (error) {
+      showNotification('Error', 'Failed to delete story');
     }
   };
 
-  const handleDuplicateStory = (storyId) => {
-    const originalStory = myStories.find(story => story.id === storyId);
-    if (originalStory) {
-      const duplicatedStory = {
-        ...originalStory,
-        id: `${storyId}-copy-${Date.now()}`,
-        title: `${originalStory.title} (Copy)`,
-        views: 0,
-        likes: 0,
-        comments: 0,
-        forks: 0,
-        status: 'draft',
-        isPrivate: true
-      };
+  const handleDuplicateStory = async (storyId) => {
+    try {
+      const duplicatedStory = await storyService.duplicateStory(storyId);
       setMyStories(stories => [...stories, duplicatedStory]);
+      showNotification('Success', 'Story duplicated successfully');
+    } catch (error) {
+      showNotification('Error', 'Failed to duplicate story');
     }
   };
 
-  const handleTogglePrivacy = (storyId) => {
-    setMyStories(stories =>
-      stories.map(story =>
-        story.id === storyId
-          ? { ...story, isPrivate: !story.isPrivate }
-          : story
-      )
-    );
+  const handleTogglePrivacy = async (story) => {
+    try {
+      const updatedStory = await storyService.updateStory(story._id, {
+        ...story,
+        isPrivate: !story.isPrivate
+      });
+      
+      setMyStories(stories =>
+        stories.map(s =>
+          s._id === story._id ? updatedStory : s
+        )
+      );
+      
+      showNotification(
+        'Success', 
+        `Story is now ${updatedStory.isPrivate ? 'private' : 'public'}`
+      );
+    } catch (error) {
+      showNotification('Error', 'Failed to update story privacy');
+    }
   };
 
-  const handleArchiveStory = (storyId) => {
-    setMyStories(stories =>
-      stories.map(story =>
-        story.id === storyId
-          ? { ...story, status: 'archived' }
-          : story
-      )
-    );
+  const handleArchiveStory = async (story) => {
+    try {
+      await storyService.updateStoryStatus(story._id, 'archived');
+      setMyStories(stories =>
+        stories.map(s =>
+          s._id === story._id ? { ...s, status: 'archived' } : s
+        )
+      );
+      showNotification('Success', 'Story archived successfully');
+    } catch (error) {
+      showNotification('Error', 'Failed to archive story');
+    }
+  };
+
+  const handleStoryRead = (story) => {
+    navigate(`/story/${story._id}`);
   };
 
   const filteredStories = myStories.filter(story => {
@@ -110,8 +119,24 @@ const MyStoriesView = ({ onStoryRead, onLike, onSave, onShare, onEdit }) => {
     return story.status === activeFilter;
   });
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader className="w-8 h-8 text-purple-600 animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-gray-50">  {/* Account for Navigation height */}
+    <div className="min-h-[calc(100vh-64px)] bg-gray-50">
+      {notification && (
+        <NotificationToast
+          title={notification.title}
+          message={notification.message}
+          onClose={() => setNotification(null)}
+        />
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -120,7 +145,7 @@ const MyStoriesView = ({ onStoryRead, onLike, onSave, onShare, onEdit }) => {
             <h1 className="text-3xl font-bold text-gray-900">My Stories</h1>
           </div>
           <button
-            onClick={() => onEdit()} 
+            onClick={handleCreateNew}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
           >
             <Edit3 className="w-4 h-4" />
@@ -153,21 +178,17 @@ const MyStoriesView = ({ onStoryRead, onLike, onSave, onShare, onEdit }) => {
         {/* Stories Grid */}
         <div className="space-y-6">
           {filteredStories.map(story => (
-            <div key={story.id} className="relative">
+            <div key={story._id} className="relative">
               <StoryCard
                 story={story}
-                isLiked={false}
-                isSaved={false}
-                onLike={() => onLike(story.id)}
-                onSave={() => onSave(story.id)}
-                onShare={() => onShare(story)}
-                onReadClick={() => onStoryRead(story)}
+                onReadClick={() => handleStoryRead(story)}
+                onShare={() => {}} // Implement share functionality if needed
               />
               
               {/* Action Icons */}
               <div className="absolute bottom-4 left-4 flex items-center space-x-3">
                 <button
-                  onClick={() => handleTogglePrivacy(story.id)}
+                  onClick={() => handleTogglePrivacy(story)}
                   className="hover:scale-110 transition-transform"
                   title={story.isPrivate ? "Make Public" : "Make Private"}
                 >
@@ -178,28 +199,28 @@ const MyStoriesView = ({ onStoryRead, onLike, onSave, onShare, onEdit }) => {
                   )}
                 </button>
                 <button
-                  onClick={() => onEdit(story)}
+                  onClick={() => handleEdit(story)}
                   className="hover:scale-110 transition-transform"
                   title="Edit Story"
                 >
                   <Edit3 className="w-5 h-5 text-purple-600" />
                 </button>
                 <button
-                  onClick={() => handleDuplicateStory(story.id)}
+                  onClick={() => handleDuplicateStory(story._id)}
                   className="hover:scale-110 transition-transform"
                   title="Duplicate Story"
                 >
                   <Copy className="w-5 h-5 text-purple-600" />
                 </button>
                 <button
-                  onClick={() => handleArchiveStory(story.id)}
+                  onClick={() => handleArchiveStory(story)}
                   className="hover:scale-110 transition-transform"
                   title="Archive Story"
                 >
                   <Archive className="w-5 h-5 text-purple-600" />
                 </button>
                 <button
-                  onClick={() => handleDeleteStory(story.id)}
+                  onClick={() => handleDeleteStory(story._id)}
                   className="hover:scale-110 transition-transform"
                   title="Delete Story"
                 >

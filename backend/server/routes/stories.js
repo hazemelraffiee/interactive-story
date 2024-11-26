@@ -4,47 +4,21 @@ import { auth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Get all public stories
-router.get('/', async (req, res) => {
+// Get all stories by current user
+router.get('/mystories', auth, async (req, res) => {
   try {
-    const { genre, search, sort = 'recent' } = req.query;
+    const stories = await Story.find({ author: req.user.userId })
+      .sort({ updatedAt: -1 })
+      .populate('author', 'username avatar');
     
-    let query = { status: 'published', isPrivate: false };
-    if (genre && genre !== 'all') {
-      query.genre = genre;
-    }
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { tags: { $in: [new RegExp(search, 'i')] } }
-      ];
-    }
-
-    let sortOption = {};
-    switch (sort) {
-      case 'trending':
-        sortOption = { 'stats.views': -1 };
-        break;
-      case 'top':
-        sortOption = { 'stats.likes': -1 };
-        break;
-      default:
-        sortOption = { createdAt: -1 };
-    }
-
-    const stories = await Story.find(query)
-      .sort(sortOption)
-      .populate('author', 'username avatar')
-      .limit(20);
-
     res.json(stories);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching stories', error: error.message });
   }
 });
 
-// Get a single story
-router.get('/:id', async (req, res) => {
+// Get a single story with auth check
+router.get('/:id', auth, async (req, res) => {
   try {
     const story = await Story.findById(req.params.id)
       .populate('author', 'username avatar');
@@ -53,9 +27,16 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Story not found' });
     }
 
-    // Increment view count
-    story.stats.views += 1;
-    await story.save();
+    // Check if the user has permission to view this story
+    if (story.isPrivate && story.author.toString() !== req.user.userId) {
+      return res.status(403).json({ message: 'Not authorized to view this story' });
+    }
+
+    // Increment view count only for public stories viewed by other users
+    if (!story.isPrivate && story.author.toString() !== req.user.userId) {
+      story.stats.views += 1;
+      await story.save();
+    }
 
     res.json(story);
   } catch (error) {
@@ -66,9 +47,20 @@ router.get('/:id', async (req, res) => {
 // Create a new story
 router.post('/', auth, async (req, res) => {
   try {
+    const { title, chapters = {}, isPrivate = true } = req.body;
+
     const newStory = new Story({
-      ...req.body,
-      author: req.user.userId
+      title,
+      chapters,
+      isPrivate,
+      author: req.user.userId,
+      status: 'draft',
+      stats: {
+        views: 0,
+        likes: 0,
+        comments: 0,
+        completionRate: 0
+      }
     });
 
     await newStory.save();
@@ -88,10 +80,20 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     if (story.author.toString() !== req.user.userId) {
-      return res.status(403).json({ message: 'Not authorized' });
+      return res.status(403).json({ message: 'Not authorized to modify this story' });
     }
 
-    Object.assign(story, req.body);
+    // Update only allowed fields
+    const { title, chapters, isPrivate, status } = req.body;
+    
+    if (title) story.title = title;
+    if (chapters) story.chapters = chapters;
+    if (typeof isPrivate === 'boolean') story.isPrivate = isPrivate;
+    if (status && ['draft', 'published', 'archived'].includes(status)) {
+      story.status = status;
+    }
+
+    story.updatedAt = new Date();
     await story.save();
     
     res.json(story);
@@ -100,9 +102,48 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
-// Delete a story
-router.delete('/:id', auth, async (req, res) => {
+// Duplicate a story
+router.post('/:id/duplicate', auth, async (req, res) => {
   try {
+    const originalStory = await Story.findById(req.params.id);
+    
+    if (!originalStory) {
+      return res.status(404).json({ message: 'Story not found' });
+    }
+
+    if (originalStory.author.toString() !== req.user.userId) {
+      return res.status(403).json({ message: 'Not authorized to duplicate this story' });
+    }
+
+    const duplicatedStory = new Story({
+      title: `${originalStory.title} (Copy)`,
+      chapters: originalStory.chapters,
+      isPrivate: true,
+      author: req.user.userId,
+      status: 'draft',
+      stats: {
+        views: 0,
+        likes: 0,
+        comments: 0,
+        completionRate: 0
+      }
+    });
+
+    await duplicatedStory.save();
+    res.status(201).json(duplicatedStory);
+  } catch (error) {
+    res.status(500).json({ message: 'Error duplicating story', error: error.message });
+  }
+});
+
+// Change story status (publish/unpublish/archive)
+router.patch('/:id/status', auth, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['draft', 'published', 'archived'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
     const story = await Story.findById(req.params.id);
     
     if (!story) {
@@ -113,40 +154,13 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    await story.remove();
-    res.json({ message: 'Story deleted' });
+    story.status = status;
+    story.updatedAt = new Date();
+    await story.save();
+    
+    res.json({ message: 'Story status updated', status });
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting story', error: error.message });
-  }
-});
-
-// Like/unlike a story
-router.post('/:id/like', auth, async (req, res) => {
-  try {
-    const story = await Story.findById(req.params.id);
-    if (!story) {
-      return res.status(404).json({ message: 'Story not found' });
-    }
-
-    const user = await User.findById(req.user.userId);
-    const isLiked = user.favoriteStories.includes(story._id);
-
-    if (isLiked) {
-      // Unlike
-      user.favoriteStories = user.favoriteStories.filter(
-        id => id.toString() !== story._id.toString()
-      );
-      story.stats.likes -= 1;
-    } else {
-      // Like
-      user.favoriteStories.push(story._id);
-      story.stats.likes += 1;
-    }
-
-    await Promise.all([user.save(), story.save()]);
-    res.json({ likes: story.stats.likes, isLiked: !isLiked });
-  } catch (error) {
-    res.status(500).json({ message: 'Error updating like', error: error.message });
+    res.status(500).json({ message: 'Error updating story status', error: error.message });
   }
 });
 

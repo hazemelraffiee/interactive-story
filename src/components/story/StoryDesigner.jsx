@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Save, Eye, Code, Edit3, CheckCircle2, 
   AlertCircle, Loader, Menu, Upload, Download,
-  X, LayoutGrid, BookOpen, Plus, Share2
+  X, LayoutGrid, BookOpen, Plus, Share2, ArrowLeft
 } from 'lucide-react';
 import { load as yamlLoad, dump as yamlDump } from 'js-yaml';
 import ValidatedYamlEditor from './ValidatedYamlEditor';
@@ -11,12 +11,17 @@ import SceneContentEditor from './SceneContentEditor';
 import ChaptersTreeDesigner from './ChaptersTreeDesigner';
 import StoryGraphViewer from './StoryGraphViewer';
 
+import { useLocation, useNavigate } from 'react-router-dom';
+import storyService from '../../services/storyService';
+import NotificationToast from '../../components/common/NotificationToast';
+
 const TopBar = ({ 
   title, 
   isSidebarOpen, 
   setIsSidebarOpen, 
   saveStatus, 
-  onSave, 
+  onSave,
+  onExit,
   isDirty,
   isSaving 
 }) => (
@@ -35,7 +40,15 @@ const TopBar = ({
       </div>
     </div>
     
+    
     <div className="flex items-center gap-4">
+      <button
+        onClick={onExit}
+        className="px-4 py-2 text-gray-600 hover:text-gray-900 flex items-center gap-2"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span className="hidden sm:inline">Exit to My Stories</span>
+      </button>
       <div className="hidden sm:block">
         {saveStatus}
       </div>
@@ -256,6 +269,18 @@ const StoryDesigner = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [notification, setNotification] = useState(null);
+  const [currentStoryId, setCurrentStoryId] = useState(null);
+
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const showNotification = (title, message) => {
+    setNotification({ title, message });
+    setTimeout(() => setNotification(null), 5000);
+  };  
+
   const updateStory = useCallback((newStory, skipDirty = false) => {
     setStory(newStory);
     if (!skipDirty) {
@@ -266,21 +291,68 @@ const StoryDesigner = () => {
 
   const handleSave = useCallback(async () => {
     if (!isDirty || isSaving) return;
-
+  
     setIsSaving(true);
     setSaveError(null);
-
+  
     try {
-      localStorage.setItem('currentStory', JSON.stringify(story));
+      let savedStory;
+      if (currentStoryId) {
+        // Update existing story
+        savedStory = await storyService.updateStory(currentStoryId, story);
+      } else {
+        // Create new story
+        savedStory = await storyService.createStory(story);
+        setCurrentStoryId(savedStory._id);
+      }
+  
       setLastSaved(new Date());
       setIsDirty(false);
+      showNotification('Success', 'Story saved successfully');
     } catch (error) {
       console.error('Failed to save story:', error);
       setSaveError('Failed to save story');
+      showNotification('Error', 'Failed to save story');
     } finally {
       setIsSaving(false);
     }
-  }, [story, isDirty, isSaving]);
+  }, [story, isDirty, isSaving, currentStoryId]);
+
+  const handleExit = useCallback(() => {
+    if (isDirty) {
+      const confirm = window.confirm('You have unsaved changes. Do you want to save before leaving?');
+      if (confirm) {
+        handleSave().then(() => {
+          navigate('/mystories');
+        });
+      } else {
+        navigate('/mystories');
+      }
+    } else {
+      navigate('/mystories');
+    }
+  }, [isDirty, handleSave, navigate]);
+
+  useEffect(() => {
+    const loadStory = async () => {
+      const storyId = location.state?.storyId;
+      if (storyId) {
+        try {
+          setIsLoading(true);
+          const loadedStory = await storyService.getStory(storyId);
+          setStory(loadedStory);
+          setCurrentStoryId(storyId);
+          setLastSaved(new Date(loadedStory.updatedAt));
+        } catch (error) {
+          showNotification('Error', 'Failed to load story');
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+  
+    loadStory();
+  }, [location.state?.storyId]);
 
   const handleImport = () => {
     const input = document.createElement('input');
@@ -384,20 +456,6 @@ const StoryDesigner = () => {
     // You can add this functionality as needed
   }, [story, updateStory]);
 
-  // Load initial story from localStorage
-  useEffect(() => {
-    try {
-      const savedStory = localStorage.getItem('currentStory');
-      if (savedStory) {
-        const parsed = JSON.parse(savedStory);
-        setStory(parsed);
-        setLastSaved(new Date());
-      }
-    } catch (error) {
-      console.error('Failed to load story:', error);
-    }
-  }, []);
-
   // Auto-save effect
   useEffect(() => {
     if (!autoSaveEnabled || !isDirty || isSaving) return;
@@ -409,8 +467,23 @@ const StoryDesigner = () => {
     return () => clearTimeout(timeoutId);
   }, [autoSaveEnabled, isDirty, isSaving, handleSave]);
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader className="w-8 h-8 text-purple-600 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-65px)]">
+      {notification && (
+        <NotificationToast
+          title={notification.title}
+          message={notification.message}
+          onClose={() => setNotification(null)}
+        />
+      )}
       <div className="flex flex-1 overflow-hidden">
         <Sidebar 
           isOpen={isSidebarOpen}
@@ -437,6 +510,7 @@ const StoryDesigner = () => {
               />
             }
             onSave={handleSave}
+            onExit={handleExit}
             isDirty={isDirty}
             isSaving={isSaving}
           />
