@@ -4,12 +4,22 @@ const STORAGE_KEY_TOKEN = 'token';
 const STORAGE_KEY_USER = 'user';
 
 const authService = {
+  getCurrentStorage() {
+    // Check which storage contains the auth data
+    if (localStorage.getItem(STORAGE_KEY_TOKEN)) {
+      return localStorage;
+    }
+    if (sessionStorage.getItem(STORAGE_KEY_TOKEN)) {
+      return sessionStorage;
+    }
+    return null;
+  },
+
   async login(credentials) {
     const response = await api.post('/api/auth/login', credentials);
     if (response.data.token) {
       const storage = credentials.rememberMe ? localStorage : sessionStorage;
-      storage.setItem(STORAGE_KEY_TOKEN, response.data.token);
-      storage.setItem(STORAGE_KEY_USER, JSON.stringify(response.data.user));
+      this.setAuthData(response.data, storage);
     }
     return response.data;
   },
@@ -17,8 +27,7 @@ const authService = {
   async register(userData) {
     const response = await api.post('/api/auth/register', userData);
     if (response.data.token) {
-      localStorage.setItem(STORAGE_KEY_TOKEN, response.data.token);
-      localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(response.data.user));
+      this.setAuthData(response.data, localStorage); // Always use localStorage for registration
     }
     return response.data;
   },
@@ -39,23 +48,39 @@ const authService = {
   },
 
   getCurrentUser() {
-    const storageUser = localStorage.getItem(STORAGE_KEY_USER) || sessionStorage.getItem(STORAGE_KEY_USER);
-    return storageUser ? JSON.parse(storageUser) : null;
+    const storage = this.getCurrentStorage();
+    if (!storage) return null;
+    
+    const userStr = storage.getItem(STORAGE_KEY_USER);
+    try {
+      return userStr ? JSON.parse(userStr) : null;
+    } catch (e) {
+      console.error('Error parsing user data:', e);
+      return null;
+    }
   },
 
   getToken() {
-    return localStorage.getItem(STORAGE_KEY_TOKEN) || sessionStorage.getItem(STORAGE_KEY_TOKEN);
+    const storage = this.getCurrentStorage();
+    return storage ? storage.getItem(STORAGE_KEY_TOKEN) : null;
   },
 
   isAuthenticated() {
-    return !!this.getToken();
+    return !!this.getToken() && !!this.getCurrentUser();
   },
 
-  // Helper method to store auth data
-  setAuthData(data, rememberMe = true) {
-    const storage = rememberMe ? localStorage : sessionStorage;
-    storage.setItem(STORAGE_KEY_TOKEN, data.token);
-    storage.setItem(STORAGE_KEY_USER, JSON.stringify(data.user));
+  setAuthData(data, storage = localStorage) {
+    if (data.token) {
+      storage.setItem(STORAGE_KEY_TOKEN, data.token);
+    }
+    if (data.user) {
+      storage.setItem(STORAGE_KEY_USER, JSON.stringify(data.user));
+    }
+  },
+
+  // Helper to check if a token exists in any storage
+  hasAuthData() {
+    return !!(localStorage.getItem(STORAGE_KEY_TOKEN) || sessionStorage.getItem(STORAGE_KEY_TOKEN));
   }
 };
 
