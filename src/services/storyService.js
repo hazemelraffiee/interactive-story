@@ -1,6 +1,13 @@
 import api from './api';
 
 const storyService = {
+
+  // Get all available genres
+  getGenres: async () => {
+    const response = await api.get('/api/stories/genres');
+    return response.data.genres;
+  },
+
   // Get all stories by current user
   getMyStories: async () => {
     const response = await api.get('/api/stories/mystories');
@@ -43,17 +50,16 @@ const storyService = {
   },
 
   // Get public stories with optional filtering
-  getPublicStories: async (genre = 'all', sort = 'trending') => {
+  getPublicStories: async (genres = 'all', sort = 'trending') => {
     try {
       const response = await api.get('/api/stories/public', {
         params: {
-          genre,
+          genres: genres === 'all' ? undefined : genres,
           sort
         }
       });
       return response.data;
     } catch (error) {
-      // Properly handle and transform the error for the frontend
       const errorMessage = error.response?.data?.message || 'Failed to fetch stories';
       throw new Error(errorMessage);
     }

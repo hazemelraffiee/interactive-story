@@ -13,21 +13,22 @@ import FavoritesView from './FavoritesView';
 import MyStoriesView from './MyStoriesView';
 import storyService from '../../services/storyService';
 
-const BrowseView = ({ 
-  storyInteractionProps, 
-  showNotification, 
-  setShowNotification, 
-  searchQuery, 
-  setSearchQuery, 
-  selectedGenre, 
-  setSelectedGenre, 
-  activeFilter, 
-  setActiveFilter, 
+const BrowseView = ({
+  storyInteractionProps,
+  showNotification,
+  setShowNotification,
+  searchQuery,
+  setSearchQuery,
+  activeFilter,
+  setActiveFilter,
   stories,
   isLoading,
   error,
-  likedStories, 
-  savedStories 
+  likedStories,
+  savedStories,
+  selectedGenres,
+  onGenreSelect,
+  availableGenres,
 }) => (
   <>
     {showNotification && (
@@ -41,8 +42,9 @@ const BrowseView = ({
     <HeroSection
       searchQuery={searchQuery}
       onSearchChange={setSearchQuery}
-      selectedGenre={selectedGenre}
-      onGenreSelect={setSelectedGenre}
+      selectedGenres={selectedGenres}
+      onGenreSelect={onGenreSelect}
+      genres={availableGenres}
       onFilterClick={() => console.log('Filter clicked')}
     />
 
@@ -58,11 +60,10 @@ const BrowseView = ({
             <button
               key={label}
               onClick={() => setActiveFilter(label)}
-              className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
-                activeFilter === label
-                  ? 'bg-purple-100 text-purple-600'
-                  : 'hover:bg-gray-100'
-              }`}
+              className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${activeFilter === label
+                ? 'bg-purple-100 text-purple-600'
+                : 'hover:bg-gray-100'
+                }`}
             >
               <Icon className="w-4 h-4" />
               <span className="capitalize hidden sm:inline">{label}</span>
@@ -119,7 +120,6 @@ const StoryPlatform = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('trending');
-  const [selectedGenre, setSelectedGenre] = useState('all');
   const [showNotification, setShowNotification] = useState(false);
   const [likedStories, setLikedStories] = useState(new Set());
   const [savedStories, setSavedStories] = useState(new Set());
@@ -128,6 +128,23 @@ const StoryPlatform = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const [selectedGenres, setSelectedGenres] = useState(['all']);
+  const [availableGenres, setAvailableGenres] = useState(['all']);
+
+  // Fetch available genres when component mounts
+  useEffect(() => {
+    const fetchGenres = async () => {
+      try {
+        const genres = await storyService.getGenres();
+        const normalizedGenres = ['all', ...genres.map(genre => genre.toLowerCase())];
+        setAvailableGenres(normalizedGenres);
+      } catch (error) {
+        console.error('Failed to fetch genres:', error);
+      }
+    };
+    fetchGenres();
+  }, []);
+
   // Fetch stories when filters change
   useEffect(() => {
     const fetchStories = async () => {
@@ -135,8 +152,11 @@ const StoryPlatform = () => {
       setError(null);
 
       try {
+        // Only pass selected genres if they're not 'all'
+        const genresToFetch = selectedGenres.includes('all') ?
+          'all' : selectedGenres;
         const fetchedStories = await storyService.getPublicStories(
-          selectedGenre,
+          genresToFetch,
           activeFilter
         );
         setStories(fetchedStories);
@@ -149,7 +169,7 @@ const StoryPlatform = () => {
     };
 
     fetchStories();
-  }, [selectedGenre, activeFilter]);
+  }, [selectedGenres, activeFilter]);
 
   // Filter stories based on search query
   const filteredStories = stories.filter(story =>
@@ -194,17 +214,15 @@ const StoryPlatform = () => {
     <div className="bg-gray-50">
       <Navigation />
       <Routes>
-        <Route 
-          path="/" 
+        <Route
+          path="/"
           element={
-            <BrowseView 
+            <BrowseView
               storyInteractionProps={storyInteractionProps}
               showNotification={showNotification}
               setShowNotification={setShowNotification}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
-              selectedGenre={selectedGenre}
-              setSelectedGenre={setSelectedGenre}
               activeFilter={activeFilter}
               setActiveFilter={setActiveFilter}
               stories={filteredStories}
@@ -212,15 +230,18 @@ const StoryPlatform = () => {
               error={error}
               likedStories={likedStories}
               savedStories={savedStories}
+              selectedGenres={selectedGenres}
+              onGenreSelect={setSelectedGenres}
+              availableGenres={availableGenres}
             />
-          } 
+          }
         />
         <Route path="/create" element={<StoryDesigner />} />
         <Route path="/mystories" element={<MyStoriesView {...storyInteractionProps} />} />
         <Route path="/favorites" element={<FavoritesView {...storyInteractionProps} />} />
-        <Route 
-          path="/story/:storyId" 
-          element={<InteractiveStoryViewer story={selectedStory} />} 
+        <Route
+          path="/story/:storyId"
+          element={<InteractiveStoryViewer story={selectedStory} />}
         />
       </Routes>
     </div>

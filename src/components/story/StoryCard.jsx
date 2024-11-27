@@ -272,11 +272,20 @@ const StoryCard = ({
             
             {/* Story Tags */}
             <div className="mt-4 flex flex-wrap gap-2">
+              {story.genres?.map(genre => (
+                <span 
+                  key={genre}
+                  className="px-3 py-1 text-sm font-medium bg-purple-50 text-purple-600 
+                    rounded-full cursor-pointer hover:bg-purple-100 transition-colors"
+                >
+                  {genre}
+                </span>
+              ))}
               {story.tags?.map(tag => (
                 <span 
                   key={tag}
-                  className="px-3 py-1 text-sm font-medium bg-purple-50 text-purple-600 
-                    rounded-full cursor-pointer hover:bg-purple-100 transition-colors"
+                  className="px-3 py-1 text-sm font-medium bg-gray-50 text-gray-600 
+                    rounded-full cursor-pointer hover:bg-gray-100 transition-colors"
                 >
                   {tag}
                 </span>

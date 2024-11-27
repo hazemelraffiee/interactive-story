@@ -1,10 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  BookOpen, 
-  Edit3, 
-  Copy, 
-  Trash2,
+  BookOpen,
   Loader
 } from 'lucide-react';
 import StoryCard from '../../components/story/StoryCard';
@@ -47,30 +44,30 @@ const MyStoriesView = () => {
   
   const navigate = useNavigate();
 
-  // Fetch stories when component mounts
-  useEffect(() => {
-    fetchStories();
-  }, []);
-
-  // Fetch all stories from the API
-  const fetchStories = async () => {
-    try {
-      setIsLoading(true);
-      const stories = await storyService.getMyStories();
-      setMyStories(stories);
-    } catch (error) {
-      showNotification('Error', 'Failed to fetch your stories');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Utility function to show notifications
-  const showNotification = (title, message, duration = 5000) => {
+  // Memoize the notification function to maintain a stable reference
+  const showNotification = useCallback((title, message, duration = 5000) => {
     setNotification({ title, message });
     setTimeout(() => setNotification(null), duration);
-  };
+  }, []); // Empty dependency array since setNotification is stable
 
+  // Fetch stories when component mounts
+  useEffect(() => {
+    const fetchStories = async () => {
+      try {
+        setIsLoading(true);
+        const stories = await storyService.getMyStories();
+        setMyStories(stories);
+      } catch (error) {
+        showNotification('Error', 'Failed to fetch your stories');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStories();
+  }, [showNotification]); // Now we can safely include showNotification as a dependency
+
+  // Rest of the component remains the same...
   // Navigation handlers
   const handleCreateNew = () => navigate('/create');
   const handleEdit = (story) => navigate('/create', { state: { storyId: story._id } });

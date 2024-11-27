@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Save, Eye, Code, Edit3, CheckCircle2, 
+import {
+  Save, Eye, Code, Edit3, CheckCircle2,
   AlertCircle, Loader, Menu, Upload, Download,
   X, LayoutGrid, BookOpen, Plus, Share2, ArrowLeft
 } from 'lucide-react';
@@ -15,19 +15,19 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import storyService from '../../services/storyService';
 import NotificationToast from '../../components/common/NotificationToast';
 
-const TopBar = ({ 
-  title, 
-  isSidebarOpen, 
-  setIsSidebarOpen, 
-  saveStatus, 
+const TopBar = ({
+  title,
+  isSidebarOpen,
+  setIsSidebarOpen,
+  saveStatus,
   onSave,
   onExit,
   isDirty,
-  isSaving 
+  isSaving
 }) => (
   <div className="h-16 bg-white border-b border-gray-200 px-4 flex items-center justify-between">
     <div className="flex items-center gap-3">
-      <button 
+      <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 lg:hidden"
         aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
@@ -39,8 +39,8 @@ const TopBar = ({
         <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
       </div>
     </div>
-    
-    
+
+
     <div className="flex items-center gap-4">
       <button
         onClick={onExit}
@@ -52,14 +52,13 @@ const TopBar = ({
       <div className="hidden sm:block">
         {saveStatus}
       </div>
-      <button 
+      <button
         onClick={onSave}
         disabled={!isDirty || isSaving}
-        className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-          isDirty && !isSaving
-            ? 'bg-purple-600 text-white hover:bg-purple-700'
-            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-        }`}
+        className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${isDirty && !isSaving
+          ? 'bg-purple-600 text-white hover:bg-purple-700'
+          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+          }`}
       >
         {isSaving ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
         <span className="hidden sm:inline">Save Changes</span>
@@ -68,10 +67,10 @@ const TopBar = ({
   </div>
 );
 
-const ViewToggle = ({ 
-  view, 
-  showCode, 
-  setView, 
+const ViewToggle = ({
+  view,
+  showCode,
+  setView,
   setShowCode,
   autoSaveEnabled,
   setAutoSaveEnabled
@@ -80,36 +79,32 @@ const ViewToggle = ({
     <div className="flex items-center bg-gray-100 rounded-lg p-1">
       <button
         onClick={() => { setView('editor'); setShowCode(false); }}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
-          view === 'editor' && !showCode ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-        }`}
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${view === 'editor' && !showCode ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+          }`}
       >
         <Edit3 className="w-4 h-4" />
         <span className="text-sm">Editor</span>
       </button>
       <button
         onClick={() => setShowCode(!showCode)}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
-          showCode ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-        }`}
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${showCode ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+          }`}
       >
         <Code className="w-4 h-4" />
         <span className="text-sm">Code</span>
       </button>
       <button
         onClick={() => { setView('preview'); setShowCode(false); }}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
-          view === 'preview' && !showCode ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-        }`}
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${view === 'preview' && !showCode ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+          }`}
       >
         <Eye className="w-4 h-4" />
         <span className="text-sm">Preview</span>
       </button>
       <button
         onClick={() => { setView('graph'); setShowCode(false); }}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
-          view === 'graph' && !showCode ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-        }`}
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${view === 'graph' && !showCode ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+          }`}
       >
         <Share2 className="w-4 h-4" />
         <span className="text-sm">Graph</span>
@@ -132,86 +127,135 @@ const ViewToggle = ({
   </div>
 );
 
-const Sidebar = ({ 
-  isOpen, 
+const Sidebar = ({
+  isOpen,
   setIsOpen,
-  story, 
-  updateStory, 
-  selected, 
+  story,
+  updateStory,
+  selected,
   setSelected,
   onImport,
-  onExport 
-}) => (
-  <>
-    <div 
-      className={`
-        fixed inset-y-0 left-0 z-30
-        w-[280px] md:w-[320px] bg-white border-r border-gray-200
-        transform transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0 lg:relative
-      `}
-    >
-      <div className="flex flex-col h-full">
-        <div className="p-4 border-b border-gray-200 space-y-4">
-          <div className="relative">
-            <input
-              type="text"
-              value={story.title}
-              onChange={(e) => updateStory({ ...story, title: e.target.value })}
-              placeholder="Story Title..."
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+  onExport
+}) => {
+
+  const [availableGenres, setAvailableGenres] = useState([]);
+
+  // Fetch available genres when component mounts
+  useEffect(() => {
+    const fetchGenres = async () => {
+      try {
+        const genres = await storyService.getGenres();
+        setAvailableGenres(genres);
+      } catch (error) {
+        console.error('Failed to fetch genres:', error);
+      }
+    };
+    fetchGenres();
+  }, []);
+
+  return (
+    <>
+      <div
+        className={`
+          fixed inset-y-0 left-0 z-30
+          w-[280px] md:w-[320px] bg-white border-r border-gray-200
+          transform transition-transform duration-300 ease-in-out
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          lg:translate-x-0 lg:relative
+        `}
+      >
+        <div className="flex flex-col h-full">
+          <div className="p-4 border-b border-gray-200 space-y-4">
+            <div className="relative">
+              <input
+                type="text"
+                value={story.title}
+                onChange={(e) => updateStory({ ...story, title: e.target.value })}
+                placeholder="Story Title..."
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+              <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onImport}
+                className="flex-1 px-3 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 flex items-center justify-center gap-2 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Import Story
+              </button>
+              <button
+                onClick={onExport}
+                className="flex-1 px-3 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 flex items-center justify-center gap-2 transition-colors"
+              >
+                <Upload className="w-4 h-4" />
+                Export Story
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Story Genres
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {availableGenres.map(genre => (
+                  <button
+                    key={genre}
+                    onClick={() => {
+                      const newGenres = story.genres?.includes(genre)
+                        ? story.genres.filter(g => g !== genre)
+                        : [...(story.genres || []), genre];
+                      updateStory({ ...story, genres: newGenres });
+                    }}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-full
+                  ${story.genres?.includes(genre)
+                        ? 'bg-purple-100 text-purple-600'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                  >
+                    {genre}
+                  </button>
+                ))}
+              </div>
+              {(!story.genres || story.genres.length === 0) && (
+                <p className="text-sm text-gray-500">
+                  Select at least one genre for your story
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            <ChaptersTreeDesigner
+              story={story}
+              selectedId={selected?.chapterId}
+              onStoryChange={updateStory}
+              onSelect={setSelected}
             />
-            <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={onImport}
-              className="flex-1 px-3 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 flex items-center justify-center gap-2 transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              Import Story
-            </button>
-            <button 
-              onClick={onExport}
-              className="flex-1 px-3 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 flex items-center justify-center gap-2 transition-colors"
-            >
-              <Upload className="w-4 h-4" />
-              Export Story
-            </button>
           </div>
         </div>
-        
-        <div className="flex-1 overflow-y-auto">
-          <ChaptersTreeDesigner
-            story={story}
-            selectedId={selected?.chapterId}
-            onStoryChange={updateStory}
-            onSelect={setSelected}
-          />
-        </div>
+
+        {/* Mobile close button */}
+        <button
+          onClick={() => setIsOpen(false)}
+          className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 lg:hidden"
+          aria-label="Close sidebar"
+        >
+          <X className="w-5 h-5 text-gray-500" />
+        </button>
       </div>
 
-      {/* Mobile close button */}
-      <button
-        onClick={() => setIsOpen(false)}
-        className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100 lg:hidden"
-        aria-label="Close sidebar"
-      >
-        <X className="w-5 h-5 text-gray-500" />
-      </button>
-    </div>
-
-    {/* Mobile overlay */}
-    {isOpen && (
-      <div 
-        className="fixed inset-0 bg-black/30 z-20 lg:hidden"
-        onClick={() => setIsOpen(false)}
-      />
-    )}
-  </>
-);
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 z-20 lg:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+    </>
+  )
+};
 
 const SaveStatus = ({ error, isSaving, isDirty, lastSaved }) => {
   if (error) return (
@@ -246,8 +290,8 @@ const EmptyState = ({ onCreateScene }) => (
       </div>
       <h3 className="text-lg font-semibold text-gray-900 mb-2">No Scene Selected</h3>
       <p className="text-gray-600 mb-6">Select a scene from the sidebar to start editing your interactive story</p>
-      <button 
-        onClick={onCreateScene} 
+      <button
+        onClick={onCreateScene}
         className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
       >
         <Plus className="w-4 h-4" />
@@ -279,7 +323,7 @@ const StoryDesigner = () => {
   const showNotification = (title, message) => {
     setNotification({ title, message });
     setTimeout(() => setNotification(null), 5000);
-  };  
+  };
 
   const updateStory = useCallback((newStory, skipDirty = false) => {
     setStory(newStory);
@@ -291,10 +335,10 @@ const StoryDesigner = () => {
 
   const handleSave = useCallback(async () => {
     if (!isDirty || isSaving) return;
-  
+
     setIsSaving(true);
     setSaveError(null);
-  
+
     try {
       let savedStory;
       if (currentStoryId) {
@@ -305,7 +349,7 @@ const StoryDesigner = () => {
         savedStory = await storyService.createStory(story);
         setCurrentStoryId(savedStory._id);
       }
-  
+
       setLastSaved(new Date());
       setIsDirty(false);
       showNotification('Success', 'Story saved successfully');
@@ -350,7 +394,7 @@ const StoryDesigner = () => {
         }
       }
     };
-  
+
     loadStory();
   }, [location.state?.storyId]);
 
@@ -361,7 +405,7 @@ const StoryDesigner = () => {
     input.onchange = async (event) => {
       const file = event.target.files[0];
       if (!file) return;
-    
+
       try {
         const text = await file.text();
         const imported = yamlLoad(text);
@@ -374,7 +418,7 @@ const StoryDesigner = () => {
     };
     input.click();
   };
-  
+
   const handleExport = () => {
     try {
       const yamlString = yamlDump(story);
@@ -423,12 +467,12 @@ const StoryDesigner = () => {
 
   const handleCreateScene = useCallback((chapterId = Object.keys(story.chapters)[0]) => {
     if (!chapterId) return;
-    
+
     const chapter = story.chapters[chapterId];
     if (!chapter) return;
 
     const newSceneId = `scene${Object.keys(chapter.scenes || {}).length + 1}`;
-    
+
     updateStory({
       ...story,
       chapters: {
@@ -485,7 +529,7 @@ const StoryDesigner = () => {
         />
       )}
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar 
+        <Sidebar
           isOpen={isSidebarOpen}
           setIsOpen={setIsSidebarOpen}
           story={story}
@@ -495,14 +539,14 @@ const StoryDesigner = () => {
           onImport={handleImport}
           onExport={handleExport}
         />
-        
+
         <div className="flex-1 flex flex-col min-w-0">
-          <TopBar 
+          <TopBar
             title={getCurrentTitle()}
             isSidebarOpen={isSidebarOpen}
             setIsSidebarOpen={setIsSidebarOpen}
             saveStatus={
-              <SaveStatus 
+              <SaveStatus
                 error={saveError}
                 isSaving={isSaving}
                 isDirty={isDirty}
@@ -514,8 +558,8 @@ const StoryDesigner = () => {
             isDirty={isDirty}
             isSaving={isSaving}
           />
-          
-          <ViewToggle 
+
+          <ViewToggle
             view={view}
             showCode={showCode}
             setView={setView}
@@ -523,7 +567,7 @@ const StoryDesigner = () => {
             autoSaveEnabled={autoSaveEnabled}
             setAutoSaveEnabled={setAutoSaveEnabled}
           />
-          
+
           <div className="flex-1 overflow-hidden">
             {showCode ? (
               <ValidatedYamlEditor
@@ -558,7 +602,7 @@ const StoryDesigner = () => {
                   onChange={handleSceneUpdate}
                   story={story}
                   onCreateScene={handleCreateScene}
-                  onCreateChapter={() => {}}
+                  onCreateChapter={() => { }}
                 />
               </div>
             ) : view === 'preview' ? (

@@ -1,5 +1,10 @@
 import mongoose from 'mongoose';
 
+const VALID_GENRES = [
+  'Fantasy', 'Sci-Fi', 'Mystery', 'Romance', 'Adventure',
+  'Horror', 'Historical', 'Comedy', 'Drama'
+];
+
 const decisionSchema = new mongoose.Schema({
   text: {
     type: String,
@@ -47,7 +52,21 @@ const storySchema = new mongoose.Schema({
   excerpt: String,
   thumbnail: String,
   tags: [String],
-  genre: String,
+  genres: {
+    type: [{
+      type: String,
+      enum: VALID_GENRES,
+      required: true
+    }],
+    validate: {
+      validator: function(genres) {
+        // Ensure at least one genre is selected
+        return genres.length > 0;
+      },
+      message: 'A story must have at least one genre'
+    },
+    default: []
+  },
   isPrivate: {
     type: Boolean,
     default: false
@@ -84,4 +103,5 @@ storySchema.pre('save', function(next) {
   next();
 });
 
+export { VALID_GENRES };
 export default mongoose.model('Story', storySchema);

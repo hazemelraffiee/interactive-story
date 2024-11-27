@@ -5,7 +5,7 @@ import GenrePills from '../common/GenrePills';
 const HeroSection = ({ 
   searchQuery = '', 
   onSearchChange = () => {},
-  selectedGenre = 'all',
+  selectedGenres = ['all'],  // Changed from selectedGenre to selectedGenres
   onGenreSelect = () => {},
   onFilterClick = () => {} 
 }) => {
@@ -44,7 +44,7 @@ const HeroSection = ({
         {/* Genre Pills */}
         <GenrePills
           genres={genres}
-          selectedGenre={selectedGenre}
+          selectedGenres={selectedGenres}  // Changed to match the plural name
           onGenreSelect={onGenreSelect}
         />
       </div>
