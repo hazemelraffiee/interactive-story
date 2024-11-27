@@ -297,9 +297,16 @@ const ChaptersTreeDesigner = ({
   // Add new chapter
   const handleAddChapter = useCallback(() => {
     const newChapterId = `chapter${Object.keys(story.chapters).length + 1}`;
+    const newSceneId = 'scene1';
     const newChapter = {
-      title: `New Chapter`,
-      scenes: {}
+      title: "New Chapter",
+      scenes: {
+        [newSceneId]: {
+          id: newSceneId,     // Required! Must match the key in scenes object
+          content: "",        // Required! Even if empty
+          decisions: []       // Optional
+        }
+      }
     };
 
     onStoryChange({

@@ -58,13 +58,6 @@ const storySchema = new mongoose.Schema({
       enum: VALID_GENRES,
       required: true
     }],
-    validate: {
-      validator: function(genres) {
-        // Ensure at least one genre is selected
-        return genres.length > 0;
-      },
-      message: 'A story must have at least one genre'
-    },
     default: []
   },
   isPrivate: {
