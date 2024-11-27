@@ -3,67 +3,80 @@ import { useNavigate } from 'react-router-dom';
 import { 
   BookOpen, 
   Edit3, 
-  Trash2, 
-  Globe, 
-  Lock,
-  Copy,
-  Archive,
+  Copy, 
+  Trash2,
   Loader
 } from 'lucide-react';
 import StoryCard from '../../components/story/StoryCard';
 import NotificationToast from '../../components/common/NotificationToast';
 import storyService from '../../services/storyService';
 
+// Filter configuration for story status tabs
+const STATUS_FILTERS = [
+  { id: 'all', label: 'All Stories' },
+  { id: 'published', label: 'Published' },
+  { id: 'draft', label: 'Drafts' },
+  { id: 'archived', label: 'Archived' }
+];
+
+// Messages to show when story state changes
+const STATE_CHANGE_MESSAGES = {
+  published: {
+    title: 'Story Published',
+    message: 'Your story is now live and visible to readers'
+  },
+  draft: {
+    title: 'Moved to Drafts',
+    message: 'Your story has been saved as a draft'
+  },
+  archived: {
+    title: 'Story Archived',
+    message: 'Your story has been moved to the archive'
+  }
+};
+
 const MyStoriesView = () => {
-  const navigate = useNavigate();
+  // Core state management
   const [myStories, setMyStories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
   const [notification, setNotification] = useState(null);
   
-  // Fetch stories on mount
+  // Track which stories are currently changing state
+  const [stateChanges, setStateChanges] = useState(new Map());
+  
+  const navigate = useNavigate();
+
+  // Fetch stories when component mounts
   useEffect(() => {
-    const fetchStories = async () => {
-      try {
-        setIsLoading(true);
-        const stories = await storyService.getMyStories();
-        setMyStories(stories);
-      } catch (error) {
-        showNotification('Error', 'Failed to fetch stories');
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchStories();
   }, []);
 
-  const showNotification = (title, message) => {
-    setNotification({ title, message });
-    setTimeout(() => setNotification(null), 5000);
-  };
-
-  const handleCreateNew = () => {
-    navigate('/create');
-  };
-
-  const handleEdit = (story) => {
-    navigate('/create', { state: { storyId: story._id } });
-  };
-
-  const handleDeleteStory = async (storyId) => {
-    if (!window.confirm('Are you sure you want to delete this story? This action cannot be undone.')) {
-      return;
-    }
-  
+  // Fetch all stories from the API
+  const fetchStories = async () => {
     try {
-      await storyService.deleteStory(storyId);
-      setMyStories(stories => stories.filter(story => story._id !== storyId));
-      showNotification('Success', 'Story deleted successfully');
+      setIsLoading(true);
+      const stories = await storyService.getMyStories();
+      setMyStories(stories);
     } catch (error) {
-      showNotification('Error', `Failed to delete story: ${error.message}`);
+      showNotification('Error', 'Failed to fetch your stories');
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Utility function to show notifications
+  const showNotification = (title, message, duration = 5000) => {
+    setNotification({ title, message });
+    setTimeout(() => setNotification(null), duration);
+  };
+
+  // Navigation handlers
+  const handleCreateNew = () => navigate('/create');
+  const handleEdit = (story) => navigate('/create', { state: { storyId: story._id } });
+  const handleStoryRead = (story) => navigate(`/story/${story._id}`);
+
+  // Story duplication handler
   const handleDuplicateStory = async (storyId) => {
     try {
       const duplicatedStory = await storyService.duplicateStory(storyId);
@@ -74,51 +87,68 @@ const MyStoriesView = () => {
     }
   };
 
-  const handleTogglePrivacy = async (story) => {
+  // Story deletion handler with confirmation
+  const handleDeleteStory = async (storyId) => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this story? This action cannot be undone.'
+    );
+    
+    if (!confirmed) return;
+  
     try {
-      const updatedStory = await storyService.updateStory(story._id, {
-        ...story,
-        isPrivate: !story.isPrivate
+      await storyService.deleteStory(storyId);
+      setMyStories(stories => stories.filter(story => story._id !== storyId));
+      showNotification('Success', 'Story deleted successfully');
+    } catch (error) {
+      showNotification('Error', 'Failed to delete story');
+    }
+  };
+
+  // Handle story state changes (draft/published/archived)
+  const handleStateChange = async (storyId, newState) => {
+    // Prevent concurrent state changes for the same story
+    if (stateChanges.get(storyId)) return;
+
+    try {
+      // Mark this story as having a state change in progress
+      setStateChanges(prev => new Map(prev).set(storyId, true));
+      
+      // Call the API to update the story status
+      await storyService.updateStoryStatus(storyId, newState);
+      
+      // Update the local state optimistically
+      setMyStories(stories =>
+        stories.map(story =>
+          story._id === storyId ? { ...story, status: newState } : story
+        )
+      );
+      
+      // Show appropriate success message
+      const { title, message } = STATE_CHANGE_MESSAGES[newState] || {
+        title: 'Status Updated',
+        message: 'Story status has been updated successfully'
+      };
+      showNotification(title, message);
+      
+    } catch (error) {
+      showNotification('Error', 'Failed to update story status');
+    } finally {
+      // Clear the state change flag for this story
+      setStateChanges(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(storyId);
+        return newMap;
       });
-      
-      setMyStories(stories =>
-        stories.map(s =>
-          s._id === story._id ? updatedStory : s
-        )
-      );
-      
-      showNotification(
-        'Success', 
-        `Story is now ${updatedStory.isPrivate ? 'private' : 'public'}`
-      );
-    } catch (error) {
-      showNotification('Error', 'Failed to update story privacy');
     }
   };
 
-  const handleArchiveStory = async (story) => {
-    try {
-      await storyService.updateStoryStatus(story._id, 'archived');
-      setMyStories(stories =>
-        stories.map(s =>
-          s._id === story._id ? { ...s, status: 'archived' } : s
-        )
-      );
-      showNotification('Success', 'Story archived successfully');
-    } catch (error) {
-      showNotification('Error', 'Failed to archive story');
-    }
-  };
-
-  const handleStoryRead = (story) => {
-    navigate(`/story/${story._id}`);
-  };
-
+  // Filter stories based on active filter
   const filteredStories = myStories.filter(story => {
     if (activeFilter === 'all') return true;
     return story.status === activeFilter;
   });
 
+  // Show loading state while fetching stories
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -129,6 +159,7 @@ const MyStoriesView = () => {
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50">
+      {/* Notification Toast */}
       {notification && (
         <NotificationToast
           title={notification.title}
@@ -138,7 +169,7 @@ const MyStoriesView = () => {
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
+        {/* Header Section */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-3">
             <BookOpen className="w-8 h-8 text-purple-600" />
@@ -146,25 +177,21 @@ const MyStoriesView = () => {
           </div>
           <button
             onClick={handleCreateNew}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 
+                     transition-colors duration-200"
           >
-            <Edit3 className="w-4 h-4" />
             Create New Story
           </button>
         </div>
 
         {/* Filter Tabs */}
         <div className="flex space-x-2 mb-8 border-b border-gray-200">
-          {[
-            { id: 'all', label: 'All Stories' },
-            { id: 'published', label: 'Published' },
-            { id: 'draft', label: 'Drafts' },
-            { id: 'archived', label: 'Archived' }
-          ].map(filter => (
+          {STATUS_FILTERS.map(filter => (
             <button
               key={filter.id}
               onClick={() => setActiveFilter(filter.id)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px 
+                transition-colors duration-200 ${
                 activeFilter === filter.id
                   ? 'border-purple-600 text-purple-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -178,73 +205,33 @@ const MyStoriesView = () => {
         {/* Stories Grid */}
         <div className="space-y-6">
           {filteredStories.map(story => (
-            <div key={story._id} className="relative">
-              <StoryCard
-                story={story}
-                onReadClick={() => handleStoryRead(story)}
-                onShare={() => {}} // Implement share functionality if needed
-              />
-              
-              {/* Action Icons */}
-              <div className="absolute bottom-4 left-4 flex items-center space-x-3">
-                <button
-                  onClick={() => handleTogglePrivacy(story)}
-                  className="hover:scale-110 transition-transform"
-                  title={story.isPrivate ? "Make Public" : "Make Private"}
-                >
-                  {story.isPrivate ? (
-                    <Lock className="w-5 h-5 text-purple-600" />
-                  ) : (
-                    <Globe className="w-5 h-5 text-purple-600" />
-                  )}
-                </button>
-                <button
-                  onClick={() => handleEdit(story)}
-                  className="hover:scale-110 transition-transform"
-                  title="Edit Story"
-                >
-                  <Edit3 className="w-5 h-5 text-purple-600" />
-                </button>
-                <button
-                  onClick={() => handleDuplicateStory(story._id)}
-                  className="hover:scale-110 transition-transform"
-                  title="Duplicate Story"
-                >
-                  <Copy className="w-5 h-5 text-purple-600" />
-                </button>
-                <button
-                  onClick={() => handleArchiveStory(story)}
-                  className="hover:scale-110 transition-transform"
-                  title="Archive Story"
-                >
-                  <Archive className="w-5 h-5 text-purple-600" />
-                </button>
-                <button
-                  onClick={() => handleDeleteStory(story._id)}
-                  className="hover:scale-110 transition-transform"
-                  title="Delete Story"
-                >
-                  <Trash2 className="w-5 h-5 text-purple-600" />
-                </button>
-              </div>
-            </div>
+            <StoryCard
+              key={story._id}
+              story={story}
+              onReadClick={handleStoryRead}
+              onEdit={handleEdit}
+              onDuplicate={handleDuplicateStory}
+              onDelete={handleDeleteStory}
+              onStateChange={handleStateChange}
+              isStateChanging={stateChanges.get(story._id)}
+            />
           ))}
-        </div>
 
-        {/* Empty State */}
-        {filteredStories.length === 0 && (
-          <div className="text-center py-12">
-            <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No stories found
-            </h3>
-            <p className="text-gray-500">
-              {activeFilter === 'all'
-                ? "You haven't created any stories yet. Click 'Create New Story' to get started!"
-                : `You don't have any ${activeFilter} stories yet.`}
-            </p>
-          </div>
-        )}
+          {/* Empty State */}
+          {filteredStories.length === 0 && (
+            <div className="text-center py-12">
+              <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No stories found
+              </h3>
+              <p className="text-gray-500">
+                {activeFilter === 'all'
+                  ? "You haven't created any stories yet. Click 'Create New Story' to get started!"
+                  : `You don't have any ${activeFilter} stories yet.`}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
