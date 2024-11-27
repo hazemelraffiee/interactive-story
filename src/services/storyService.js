@@ -40,6 +40,23 @@ const storyService = {
   // Delete a story
   deleteStory: async (storyId) => {
     await api.delete(`/api/stories/${storyId}`);
+  },
+
+  // Get public stories with optional filtering
+  getPublicStories: async (genre = 'all', sort = 'trending') => {
+    try {
+      const response = await api.get('/api/stories/public', {
+        params: {
+          genre,
+          sort
+        }
+      });
+      return response.data;
+    } catch (error) {
+      // Properly handle and transform the error for the frontend
+      const errorMessage = error.response?.data?.message || 'Failed to fetch stories';
+      throw new Error(errorMessage);
+    }
   }
 };
 

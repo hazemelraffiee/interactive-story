@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
-import { TrendingUp, Clock, Star } from 'lucide-react';
+import { TrendingUp, Clock, Star, Loader, AlertCircle, BookOpen } from 'lucide-react';
 
 // Import Components
 import Navigation from '../../components/layout/Navigation';
@@ -11,8 +11,24 @@ import StoryDesigner from '../../components/story/StoryDesigner';
 import StoryCard from '../../components/story/StoryCard';
 import FavoritesView from './FavoritesView';
 import MyStoriesView from './MyStoriesView';
+import storyService from '../../services/storyService';
 
-const BrowseView = ({ storyInteractionProps, showNotification, setShowNotification, searchQuery, setSearchQuery, selectedGenre, setSelectedGenre, activeFilter, setActiveFilter, featuredStories, likedStories, savedStories }) => (
+const BrowseView = ({ 
+  storyInteractionProps, 
+  showNotification, 
+  setShowNotification, 
+  searchQuery, 
+  setSearchQuery, 
+  selectedGenre, 
+  setSelectedGenre, 
+  activeFilter, 
+  setActiveFilter, 
+  stories,
+  isLoading,
+  error,
+  likedStories, 
+  savedStories 
+}) => (
   <>
     {showNotification && (
       <NotificationToast
@@ -55,12 +71,43 @@ const BrowseView = ({ storyInteractionProps, showNotification, setShowNotificati
         </div>
       </div>
 
-      {featuredStories.map(story => (
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex justify-center py-12">
+          <Loader className="w-8 h-8 text-purple-600 animate-spin" />
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="text-center py-12">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Failed to load stories
+          </h3>
+          <p className="text-gray-500">{error}</p>
+        </div>
+      )}
+
+      {/* Stories Grid */}
+      {!isLoading && !error && stories.length === 0 && (
+        <div className="text-center py-12">
+          <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No stories found
+          </h3>
+          <p className="text-gray-500">
+            Try adjusting your filters or check back later for new stories
+          </p>
+        </div>
+      )}
+
+      {!isLoading && !error && stories.map(story => (
         <StoryCard
-          key={story.id}
+          key={story._id}
           story={story}
-          isLiked={likedStories.has(story.id)}
-          isSaved={savedStories.has(story.id)}
+          isLiked={likedStories.has(story._id)}
+          isSaved={savedStories.has(story._id)}
           {...storyInteractionProps}
         />
       ))}
@@ -77,57 +124,39 @@ const StoryPlatform = () => {
   const [likedStories, setLikedStories] = useState(new Set());
   const [savedStories, setSavedStories] = useState(new Set());
   const [selectedStory, setSelectedStory] = useState(null);
+  const [stories, setStories] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Demo featured stories data
-  const featuredStories = [
-    {
-      id: 'featured-1',
-      title: "The Chronicles of Tomorrow",
-      author: "Elena Martinez",
-      authorBadge: "Bestseller",
-      excerpt: "An epic tale of humanity's journey to the stars, where every decision shapes the fate of civilizations...",
-      likes: 12340,
-      views: 56780,
-      forks: 890,
-      thumbnail: "/api/placeholder/800/400",
-      tags: ["Sci-Fi", "Adventure"],
-      readTime: "15 min",
-      isLiked: true,
-      rating: 4.8,
-      reviewCount: 1234,
-      completionRate: 92,
-      achievements: ["Editor's Choice", "Top Story 2024"],
-      comments: 456,
-      lastActive: "2 hours ago"
-    },
-    {
-      id: 'featured-2',
-      title: "Whispers in the Code",
-      author: "Alex Chen",
-      authorBadge: "Rising Star",
-      excerpt: "A cyberpunk thriller where reality and virtual worlds collide...",
-      likes: 8976,
-      views: 34567,
-      forks: 654,
-      thumbnail: "/api/placeholder/800/400",
-      tags: ["Cyberpunk", "Mystery"],
-      readTime: "18 min",
-      isLiked: false,
-      rating: 4.7,
-      reviewCount: 876,
-      completionRate: 88,
-      achievements: ["Trending", "Most Interactive"],
-      comments: 321,
-      lastActive: "5 minutes ago"
-    }
-  ];
-
+  // Fetch stories when filters change
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowNotification(true);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
+    const fetchStories = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const fetchedStories = await storyService.getPublicStories(
+          selectedGenre,
+          activeFilter
+        );
+        setStories(fetchedStories);
+      } catch (err) {
+        setError('Failed to load stories. Please try again later.');
+        console.error('Error fetching stories:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStories();
+  }, [selectedGenre, activeFilter]);
+
+  // Filter stories based on search query
+  const filteredStories = stories.filter(story =>
+    story.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    story.excerpt?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    story.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   const handleStoryLike = (storyId) => {
     setLikedStories(prev => {
@@ -178,7 +207,9 @@ const StoryPlatform = () => {
               setSelectedGenre={setSelectedGenre}
               activeFilter={activeFilter}
               setActiveFilter={setActiveFilter}
-              featuredStories={featuredStories}
+              stories={filteredStories}
+              isLoading={isLoading}
+              error={error}
               likedStories={likedStories}
               savedStories={savedStories}
             />
