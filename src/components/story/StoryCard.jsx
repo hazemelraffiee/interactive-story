@@ -10,9 +10,10 @@ import {
 } from 'lucide-react';
 import ProgressBar from '../common/ProgressBar';
 import AchievementBadge from '../common/AchievementBadge';
+import { getStoryThumbnail, generateThumbnailPlaceholder } from '../../services/thumbnailPlaceholder';
+import authService from '../../services/authService';
 
-// Utility function to get appropriate styling for each state
-// Returns Tailwind classes for different status badges
+// Utility function to get appropriate styling for each state remains the same
 const getStateBadgeStyles = (status) => {
   switch (status) {
     case 'published':
@@ -26,7 +27,7 @@ const getStateBadgeStyles = (status) => {
   }
 };
 
-// StateMenu component rendered via portal to avoid z-index and overflow issues
+// StateMenu component for handling story state changes
 const StateMenu = ({ currentState, onStateChange, position = { top: 0, left: 0 }, onClose }) => {
   const menuRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -125,7 +126,6 @@ const StateMenu = ({ currentState, onStateChange, position = { top: 0, left: 0 }
   );
 };
 
-// Main StoryCard component
 const StoryCard = ({ 
   story, 
   onReadClick,
@@ -134,10 +134,14 @@ const StoryCard = ({
   onDelete,
   onStateChange
 }) => {
+  // State management
   const [showStateMenu, setShowStateMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [isChangingState, setIsChangingState] = useState(false);
   const stateBadgeRef = useRef(null);
+  
+  // Get the current authenticated user
+  const currentUser = authService.getCurrentUser();
   
   // Extract story properties with fallbacks
   const stats = story?.stats || {};
@@ -145,9 +149,18 @@ const StoryCard = ({
   const comments = stats.comments || 0;
   const completionRate = stats.completionRate || 0;
   const authorName = typeof story.author === 'object' ? story.author.username : story.author;
+  const authorId = typeof story.author === 'object' ? story.author._id : story.author;
   const authorAvatar = story.author?.avatar;
 
-  // Calculate menu position while ensuring it stays within viewport
+  // Check if the current user is the author by comparing IDs
+  const isAuthor = currentUser && authorId && (
+    currentUser._id === authorId || 
+    currentUser.id === authorId ||
+    currentUser._id?.toString() === authorId?.toString() ||
+    currentUser.id?.toString() === authorId?.toString()
+  );
+
+  // Menu position calculation
   const handleStateBadgeClick = (event) => {
     event.stopPropagation();
     
@@ -170,7 +183,7 @@ const StoryCard = ({
     setShowStateMenu(true);
   };
 
-  // Handle state changes with loading state
+  // State change handler
   const handleStateChange = async (newState) => {
     if (newState === story.status) return;
     
@@ -189,34 +202,15 @@ const StoryCard = ({
           {/* Story Thumbnail Section */}
           <div className="md:flex-1 relative group">
             <img 
-              src={story.thumbnail || "/api/placeholder/800/400"}
-              alt={story.title}
+              src={getStoryThumbnail(story)}
+              alt={story.title || 'Story thumbnail'}
               className="w-full h-64 md:h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              onError={(e) => {
+                e.target.src = generateThumbnailPlaceholder(story.title, authorName);
+              }}
             />
-            {/* Badges Container */}
+            {/* Achievements Badge Container */}
             <div className="absolute top-4 left-4 flex flex-col space-y-2">
-              {/* State Badge */}
-              <button
-                ref={stateBadgeRef}
-                onClick={handleStateBadgeClick}
-                disabled={isChangingState}
-                className={`flex items-center space-x-2 px-3 py-1.5 rounded-full border 
-                  transition-all duration-200 ${getStateBadgeStyles(story.status)}
-                  ${isChangingState ? 'opacity-50 cursor-not-allowed' : ''}
-                `}
-                id="state-menu-button"
-                aria-expanded={showStateMenu}
-                aria-haspopup="true"
-              >
-                <span className="text-sm font-medium capitalize">{story.status}</span>
-                <ChevronDown 
-                  className={`w-4 h-4 transition-transform duration-200 
-                    ${showStateMenu ? 'rotate-180' : 'rotate-0'}
-                    ${isChangingState ? 'animate-spin' : ''}`} 
-                />
-              </button>
-              
-              {/* Achievement Badges */}
               {story.achievements?.map((achievement, index) => (
                 <AchievementBadge 
                   key={index} 
@@ -224,17 +218,43 @@ const StoryCard = ({
                 />
               ))}
             </div>
+
+            {/* State Badge - Only shown for author, positioned at bottom left */}
+            {isAuthor && (
+              <div className="absolute bottom-4 left-4">
+                <button
+                  ref={stateBadgeRef}
+                  onClick={handleStateBadgeClick}
+                  disabled={isChangingState}
+                  className={`flex items-center space-x-2 px-3 py-1.5 rounded-full border 
+                    transition-all duration-200 ${getStateBadgeStyles(story.status)}
+                    ${isChangingState ? 'opacity-50 cursor-not-allowed' : ''}
+                  `}
+                  id="state-menu-button"
+                  aria-expanded={showStateMenu}
+                  aria-haspopup="true"
+                >
+                  <span className="text-sm font-medium capitalize">{story.status}</span>
+                  <ChevronDown 
+                    className={`w-4 h-4 transition-transform duration-200 
+                      ${showStateMenu ? 'rotate-180' : 'rotate-0'}
+                      ${isChangingState ? 'animate-spin' : ''}`} 
+                  />
+                </button>
+              </div>
+            )}
           </div>
           
           {/* Story Content Section */}
           <div className="md:flex-1 p-6">
-            {/* Header */}
+            {/* Story Title and Author Section */}
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-2xl font-bold text-gray-900 hover:text-purple-600 transition-colors">
                   {story.title}
                 </h3>
                 <div className="flex items-center space-x-2 mt-1">
+                  {/* Only show avatar if one exists */}
                   {authorAvatar && (
                     <img 
                       src={authorAvatar} 
@@ -247,10 +267,10 @@ const StoryCard = ({
               </div>
             </div>
             
-            {/* Description */}
+            {/* Story Description */}
             <p className="mt-4 text-gray-600 line-clamp-3">{story.excerpt}</p>
             
-            {/* Tags */}
+            {/* Story Tags */}
             <div className="mt-4 flex flex-wrap gap-2">
               {story.tags?.map(tag => (
                 <span 
@@ -263,9 +283,9 @@ const StoryCard = ({
               ))}
             </div>
             
-            {/* Story Stats and Actions */}
+            {/* Stats and Actions Container */}
             <div className="mt-6 space-y-4">
-              {/* Stats Row */}
+              {/* Story Statistics */}
               <div className="flex items-center justify-between text-sm">
                 <div className="flex space-x-4">
                   <div className="flex items-center space-x-1">
@@ -280,37 +300,39 @@ const StoryCard = ({
                 <span className="text-sm text-gray-500">{story.readTime || '5 min'} read</span>
               </div>
 
-              {/* Progress Bar */}
+              {/* Story Progress Bar */}
               <ProgressBar 
                 value={completionRate}
                 label="Completion Rate"
               />
 
-              {/* Action Buttons */}
+              {/* Action Buttons - Only show edit/duplicate/delete for author */}
               <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={() => onEdit(story)}
-                    className="hover:scale-110 transition-transform"
-                    title="Edit Story"
-                  >
-                    <Edit3 className="w-5 h-5 text-purple-600" />
-                  </button>
-                  <button
-                    onClick={() => onDuplicate(story._id)}
-                    className="hover:scale-110 transition-transform"
-                    title="Duplicate Story"
-                  >
-                    <Copy className="w-5 h-5 text-purple-600" />
-                  </button>
-                  <button
-                    onClick={() => onDelete(story._id)}
-                    className="hover:scale-110 transition-transform"
-                    title="Delete Story"
-                  >
-                    <Trash2 className="w-5 h-5 text-purple-600" />
-                  </button>
-                </div>
+                {isAuthor && (
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => onEdit(story)}
+                      className="hover:scale-110 transition-transform"
+                      title="Edit Story"
+                    >
+                      <Edit3 className="w-5 h-5 text-purple-600" />
+                    </button>
+                    <button
+                      onClick={() => onDuplicate(story._id)}
+                      className="hover:scale-110 transition-transform"
+                      title="Duplicate Story"
+                    >
+                      <Copy className="w-5 h-5 text-purple-600" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(story._id)}
+                      className="hover:scale-110 transition-transform"
+                      title="Delete Story"
+                    >
+                      <Trash2 className="w-5 h-5 text-purple-600" />
+                    </button>
+                  </div>
+                )}
                 <button 
                   onClick={() => onReadClick(story)}
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg 
@@ -324,8 +346,8 @@ const StoryCard = ({
         </div>
       </div>
 
-      {/* State Menu Portal */}
-      {showStateMenu && (
+      {/* State Menu Portal - Only rendered for author */}
+      {showStateMenu && isAuthor && (
         <StateMenu
           currentState={story.status}
           onStateChange={handleStateChange}

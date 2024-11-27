@@ -74,7 +74,12 @@ const authService = {
       storage.setItem(STORAGE_KEY_TOKEN, data.token);
     }
     if (data.user) {
-      storage.setItem(STORAGE_KEY_USER, JSON.stringify(data.user));
+      // Normalize the id field to _id to match MongoDB format
+      const normalizedUser = {
+        ...data.user,
+        _id: data.user.id || data.user._id
+      };
+      storage.setItem(STORAGE_KEY_USER, JSON.stringify(normalizedUser));
     }
   },
 
