@@ -8,22 +8,18 @@ const VALID_GENRES = [
 const decisionSchema = new mongoose.Schema({
   text: {
     type: String,
-    required: true
+    required: false
   },
   nextScene: {
     type: String,
-    required: true
+    required: false
   }
 });
 
 const sceneSchema = new mongoose.Schema({
-  id: {
-    type: String,
-    required: true
-  },
   content: {
     type: String,
-    required: true
+    required: false
   },
   decisions: [decisionSchema]
 });

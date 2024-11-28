@@ -9,7 +9,6 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
-    "@monaco-editor/react": "^4.6.0",
     "@mui/icons-material": "^6.1.7",
     "@mui/material": "^6.1.7",
     "@testing-library/jest-dom": "^5.17.0",
