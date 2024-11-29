@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   BookOpen,
@@ -16,22 +16,6 @@ const STATUS_FILTERS = [
   { id: 'archived', label: 'Archived' }
 ];
 
-// Messages to show when story state changes
-const STATE_CHANGE_MESSAGES = {
-  published: {
-    title: 'Story Published',
-    message: 'Your story is now live and visible to readers'
-  },
-  draft: {
-    title: 'Moved to Drafts',
-    message: 'Your story has been saved as a draft'
-  },
-  archived: {
-    title: 'Story Archived',
-    message: 'Your story has been moved to the archive'
-  }
-};
-
 const MyStoriesView = () => {
   // Core state management
   const [myStories, setMyStories] = useState([]);
@@ -39,16 +23,7 @@ const MyStoriesView = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [notification, setNotification] = useState(null);
   
-  // Track which stories are currently changing state
-  const [stateChanges, setStateChanges] = useState(new Map());
-  
   const navigate = useNavigate();
-
-  // Memoize the notification function to maintain a stable reference
-  const showNotification = useCallback((title, message, duration = 5000) => {
-    setNotification({ title, message });
-    setTimeout(() => setNotification(null), duration);
-  }, []); // Empty dependency array since setNotification is stable
 
   // Fetch stories when component mounts
   useEffect(() => {
@@ -70,17 +45,26 @@ const MyStoriesView = () => {
 
   const handleStoryUpdate = (update, deletedId) => {
     if (deletedId) {
-      // Remove deleted story from the list
+      // Handle deletion
       setMyStories(stories => stories.filter(story => story._id !== deletedId));
     } else if (update) {
       setMyStories(stories => {
         if (update.id) {
-          // Update existing story (e.g., status change)
-          return stories.map(story =>
-            story._id === update.id ? { ...story, ...update } : story
-          );
+          // Handle state change or other updates
+          return stories.map(story => {
+            if (story._id === update.id) {
+              // Create new story object with all updates
+              return {
+                ...story,
+                ...update,
+                status: update.status, // Explicitly update status
+                updatedAt: update.updatedAt
+              };
+            }
+            return story;
+          });
         }
-        // Add new story (e.g., after duplication)
+        // Handle new story addition (e.g., after duplication)
         return [...stories, update];
       });
     }

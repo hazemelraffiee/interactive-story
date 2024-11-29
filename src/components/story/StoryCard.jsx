@@ -235,11 +235,10 @@ const StoryCard = ({
                     transition-all duration-200 ${getStateBadgeStyles(story.status)}
                     ${stateChanges.get(story._id) ? 'opacity-50 cursor-not-allowed' : ''}
                   `}
-                  id="state-menu-button"
-                  aria-expanded={showStateMenu}
-                  aria-haspopup="true"
                 >
-                  <span className="text-sm font-medium capitalize">{story.status}</span>
+                  <span className="text-sm font-medium capitalize">
+                    {stateChanges.get(story._id) ? 'Updating...' : story.status}
+                  </span>
                   <ChevronDown 
                     className={`w-4 h-4 transition-transform duration-200 
                       ${showStateMenu ? 'rotate-180' : 'rotate-0'}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Coffee, MessageCircle, Brain, ArrowRight, AlertTriangle } from 'lucide-react';
+import { Coffee, MessageCircle, Brain, ArrowRight, AlertTriangle, Loader } from 'lucide-react';
 import storyService from '../../services/storyService';
 
 // Define animations
@@ -245,6 +245,14 @@ const InteractiveStoryViewer = ({ story: propStory }) => {
       ]);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader className="w-8 h-8 text-purple-600 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div

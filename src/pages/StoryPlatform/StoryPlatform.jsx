@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { TrendingUp, Clock, Star, Loader, AlertCircle, BookOpen } from 'lucide-react';
 
 // Import Components
@@ -24,7 +24,6 @@ const BrowseView = ({
   setStories,
   isLoading,
   error,
-  likedStories,
   savedStories,
   selectedGenres,
   onGenreSelect,
@@ -33,17 +32,27 @@ const BrowseView = ({
 
   const handleStoryUpdate = (update, deletedId) => {
     if (deletedId) {
-      setStories(currentStories => 
-        currentStories.filter(story => story._id !== deletedId)
-      );
+      // Handle deletion
+      setStories(stories => stories.filter(story => story._id !== deletedId));
     } else if (update) {
-      setStories(currentStories => {
+      setStories(stories => {
         if (update.id) {
-          return currentStories.map(story =>
-            story._id === update.id ? { ...story, ...update } : story
-          );
+          // Handle state change or other updates
+          return stories.map(story => {
+            if (story._id === update.id) {
+              // Create new story object with all updates
+              return {
+                ...story,
+                ...update,
+                status: update.status, // Explicitly update status
+                updatedAt: update.updatedAt
+              };
+            }
+            return story;
+          });
         }
-        return [...currentStories, update];
+        // Handle new story addition (e.g., after duplication)
+        return [...stories, update];
       });
     }
   };
@@ -127,8 +136,6 @@ const BrowseView = ({
             key={story._id}
             story={story}
             onUpdate={handleStoryUpdate}
-            isLiked={likedStories.has(story._id)}
-            isSaved={savedStories.has(story._id)}
           />
         ))}
       </div>
@@ -137,13 +144,9 @@ const BrowseView = ({
 };
 
 const StoryPlatform = () => {
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('trending');
   const [showNotification, setShowNotification] = useState(false);
-  const [likedStories, setLikedStories] = useState(new Set());
-  const [savedStories, setSavedStories] = useState(new Set());
-  const [selectedStory, setSelectedStory] = useState(null);
   const [stories, setStories] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -198,26 +201,6 @@ const StoryPlatform = () => {
     story.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const handleStoryLike = (storyId) => {
-    setLikedStories(prev => {
-      const newSet = new Set(prev);
-      newSet.has(storyId) ? newSet.delete(storyId) : newSet.add(storyId);
-      return newSet;
-    });
-  };
-
-  const handleStorySave = (storyId) => {
-    setSavedStories(prev => {
-      const newSet = new Set(prev);
-      newSet.has(storyId) ? newSet.delete(storyId) : newSet.add(storyId);
-      return newSet;
-    });
-  };
-
-  const handleStoryShare = (story) => {
-    console.log('Sharing story:', story.title);
-  };
-
   return (
     <div className="bg-gray-50">
       <Navigation />
@@ -236,8 +219,6 @@ const StoryPlatform = () => {
               setStories={setStories}
               isLoading={isLoading}
               error={error}
-              likedStories={likedStories}
-              savedStories={savedStories}
               selectedGenres={selectedGenres}
               onGenreSelect={setSelectedGenres}
               availableGenres={availableGenres}
@@ -249,7 +230,7 @@ const StoryPlatform = () => {
         <Route path="/favorites" element={<FavoritesView />} />
         <Route
           path="/story/:storyId"
-          element={<InteractiveStoryViewer story={selectedStory} />}
+          element={<InteractiveStoryViewer />}
         />
       </Routes>
     </div>

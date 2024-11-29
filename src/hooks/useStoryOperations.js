@@ -50,26 +50,44 @@ export const useStoryOperations = (onUpdate = () => {}) => {
   };
 
   const handleStateChange = async (storyId, newState) => {
-    // Prevent concurrent state changes for the same story
     if (stateChanges.get(storyId)) return;
-
+  
     try {
+      // Mark story as changing state
       setStateChanges(prev => new Map(prev).set(storyId, true));
       
-      await storyService.updateStoryStatus(storyId, newState);
+      // Call API to update status
+      const updatedStory = await storyService.updateStoryStatus(storyId, newState);
       
-      const messages = {
-        published: 'Story published successfully',
-        draft: 'Story moved to drafts',
-        archived: 'Story archived successfully'
+      // Create update object with all necessary information
+      const stateUpdate = {
+        id: storyId,
+        status: newState,
+        updatedAt: updatedStory.updatedAt, // Include any additional updated fields
       };
+  
+      // Notify parent component of the state change
+      onUpdate(stateUpdate);
+      
+      // Show success notification
+      const messages = {
+        published: 'Your story is now live and visible to readers',
+        draft: 'Your story has been saved as a draft',
+        archived: 'Your story has been moved to the archive'
+      };
+      showNotification('Status Updated', messages[newState]);
 
+
+      showNotification('Status Updated', messages[newState] || 'Status updated successfully');
+      onUpdate({ id: storyId, status: newState }); // Notify parent of state change
+  
       showNotification('Status Updated', messages[newState] || 'Status updated successfully');
       onUpdate({ id: storyId, status: newState }); // Notify parent of state change
     } catch (error) {
       showNotification('Error', 'Failed to update story status');
       console.error('Error updating story status:', error);
     } finally {
+      // Clear the changing state flag
       setStateChanges(prev => {
         const newMap = new Map(prev);
         newMap.delete(storyId);
