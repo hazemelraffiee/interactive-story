@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Coffee, MessageCircle, Brain, ArrowRight, AlertTriangle } from 'lucide-react';
+import storyService from '../../services/storyService';
 
 // Define animations
 export const animationStyles = `
@@ -89,11 +91,10 @@ const DecisionButton = ({ decision, chapter, scenes, allChapters, onDecision }) 
   return (
     <button
       onClick={() => isValidPath && onDecision(decision)}
-      className={`w-full p-4 text-left rounded-lg flex items-center gap-2 transition-all duration-300 transform hover:translate-x-1 ${
-        isValidPath
+      className={`w-full p-4 text-left rounded-lg flex items-center gap-2 transition-all duration-300 transform hover:translate-x-1 ${isValidPath
           ? 'bg-gray-100 hover:bg-gray-200'
           : 'bg-red-50 border-2 border-red-200 cursor-not-allowed'
-      }`}
+        }`}
       disabled={!isValidPath}
     >
       {isValidPath ? (
@@ -147,9 +148,31 @@ export const Scene = ({ scene, showDecisions = false, onDecision, chapter, chapt
   );
 };
 
-const InteractiveStoryViewer = ({ story }) => {
+const InteractiveStoryViewer = ({ story: propStory }) => {
+  const [story, setStory] = useState(propStory);
   const [currentChapter, setCurrentChapter] = useState('');
   const [storyHistory, setStoryHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const { storyId } = useParams();
+
+  // Fetch story if not provided through props
+  useEffect(() => {
+    const fetchStory = async () => {
+      if (!propStory && storyId) {
+        try {
+          setIsLoading(true);
+          const fetchedStory = await storyService.getStory(storyId);
+          setStory(fetchedStory);
+        } catch (error) {
+          console.error('Error fetching story:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchStory();
+  }, [propStory, storyId]);
 
   // Add animation styles on mount
   useEffect(() => {

@@ -15,7 +15,8 @@ app.use(express.json());
 
 // Define allowed origins
 const allowedOrigins = [
-  process.env.CORS_ORIGIN
+  process.env.CORS_ORIGIN,
+  "http://localhost:3000"
 ];
 
 // Configure CORS options

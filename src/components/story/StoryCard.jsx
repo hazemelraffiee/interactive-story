@@ -10,10 +10,12 @@ import {
 } from 'lucide-react';
 import ProgressBar from '../common/ProgressBar';
 import AchievementBadge from '../common/AchievementBadge';
-import { getStoryThumbnail, generateThumbnailPlaceholder } from '../../services/thumbnailPlaceholder';
+import NotificationToast from '../common/NotificationToast';
+import { useStoryOperations } from '../../hooks/useStoryOperations';
 import authService from '../../services/authService';
+import { getStoryThumbnail, generateThumbnailPlaceholder } from '../../services/thumbnailPlaceholder';
 
-// Utility function to get appropriate styling for each state remains the same
+// Utility function to get appropriate styling for each state
 const getStateBadgeStyles = (status) => {
   switch (status) {
     case 'published':
@@ -42,9 +44,10 @@ const StateMenu = ({ currentState, onStateChange, position = { top: 0, left: 0 }
   // Handle closing animation before actual close
   const handleClose = useCallback(() => {
     setIsClosing(true);
+    // Using setTimeout in a callback ensures it's not recreated on every render
     setTimeout(() => {
       onClose();
-    }, 200); // Match transition duration
+    }, 200);
   }, [onClose]);
 
   // Handle clicks outside the menu
@@ -71,7 +74,6 @@ const StateMenu = ({ currentState, onStateChange, position = { top: 0, left: 0 }
     return () => document.removeEventListener('keydown', handleEscape);
   }, [handleClose]);
 
-  // Render menu through portal to avoid z-index issues
   return createPortal(
     <div className="relative z-50">
       {/* Semi-transparent backdrop */}
@@ -127,17 +129,24 @@ const StateMenu = ({ currentState, onStateChange, position = { top: 0, left: 0 }
 };
 
 const StoryCard = ({ 
-  story, 
-  onReadClick,
-  onEdit,
-  onDuplicate,
-  onDelete,
-  onStateChange
+  story,
+  onUpdate
 }) => {
-  // State management
+  // Get story operations from custom hook
+  const {
+    handleStoryRead,
+    handleEdit,
+    handleDuplicate,
+    handleDelete,
+    handleStateChange,
+    stateChanges,
+    notification,
+    setNotification
+  } = useStoryOperations(onUpdate);
+
+  // State for managing the state change menu
   const [showStateMenu, setShowStateMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
-  const [isChangingState, setIsChangingState] = useState(false);
   const stateBadgeRef = useRef(null);
   
   // Get the current authenticated user
@@ -152,7 +161,7 @@ const StoryCard = ({
   const authorId = typeof story.author === 'object' ? story.author._id : story.author;
   const authorAvatar = story.author?.avatar;
 
-  // Check if the current user is the author by comparing IDs
+  // Check if the current user is the author
   const isAuthor = currentUser && authorId && (
     currentUser._id === authorId || 
     currentUser.id === authorId ||
@@ -183,20 +192,16 @@ const StoryCard = ({
     setShowStateMenu(true);
   };
 
-  // State change handler
-  const handleStateChange = async (newState) => {
-    if (newState === story.status) return;
-    
-    setIsChangingState(true);
-    try {
-      await onStateChange(story._id, newState);
-    } finally {
-      setIsChangingState(false);
-    }
-  };
-
   return (
     <>
+      {notification && (
+        <NotificationToast
+          title={notification.title}
+          message={notification.message}
+          onClose={() => setNotification(null)}
+        />
+      )}
+
       <div className="bg-white rounded-xl shadow-sm mb-8 hover:shadow-md transition-shadow">
         <div className="md:flex">
           {/* Story Thumbnail Section */}
@@ -219,16 +224,16 @@ const StoryCard = ({
               ))}
             </div>
 
-            {/* State Badge - Only shown for author, positioned at bottom left */}
+            {/* State Badge - Only shown for author */}
             {isAuthor && (
               <div className="absolute bottom-4 left-4">
                 <button
                   ref={stateBadgeRef}
                   onClick={handleStateBadgeClick}
-                  disabled={isChangingState}
+                  disabled={stateChanges.get(story._id)}
                   className={`flex items-center space-x-2 px-3 py-1.5 rounded-full border 
                     transition-all duration-200 ${getStateBadgeStyles(story.status)}
-                    ${isChangingState ? 'opacity-50 cursor-not-allowed' : ''}
+                    ${stateChanges.get(story._id) ? 'opacity-50 cursor-not-allowed' : ''}
                   `}
                   id="state-menu-button"
                   aria-expanded={showStateMenu}
@@ -238,7 +243,7 @@ const StoryCard = ({
                   <ChevronDown 
                     className={`w-4 h-4 transition-transform duration-200 
                       ${showStateMenu ? 'rotate-180' : 'rotate-0'}
-                      ${isChangingState ? 'animate-spin' : ''}`} 
+                      ${stateChanges.get(story._id) ? 'animate-spin' : ''}`} 
                   />
                 </button>
               </div>
@@ -254,7 +259,6 @@ const StoryCard = ({
                   {story.title}
                 </h3>
                 <div className="flex items-center space-x-2 mt-1">
-                  {/* Only show avatar if one exists */}
                   {authorAvatar && (
                     <img 
                       src={authorAvatar} 
@@ -315,35 +319,42 @@ const StoryCard = ({
                 label="Completion Rate"
               />
 
-              {/* Action Buttons - Only show edit/duplicate/delete for author */}
+              {/* Action Buttons */}
               <div className="flex justify-between items-center">
-                {isAuthor && (
-                  <div className="flex items-center space-x-3">
-                    <button
-                      onClick={() => onEdit(story)}
-                      className="hover:scale-110 transition-transform"
-                      title="Edit Story"
-                    >
-                      <Edit3 className="w-5 h-5 text-purple-600" />
-                    </button>
-                    <button
-                      onClick={() => onDuplicate(story._id)}
-                      className="hover:scale-110 transition-transform"
-                      title="Duplicate Story"
-                    >
-                      <Copy className="w-5 h-5 text-purple-600" />
-                    </button>
-                    <button
-                      onClick={() => onDelete(story._id)}
-                      className="hover:scale-110 transition-transform"
-                      title="Delete Story"
-                    >
-                      <Trash2 className="w-5 h-5 text-purple-600" />
-                    </button>
-                  </div>
-                )}
+                <div className="flex items-center space-x-3">
+                  {/* Edit and Delete buttons only shown for author */}
+                  {isAuthor && (
+                    <>
+                      <button
+                        onClick={() => handleEdit(story)}
+                        className="hover:scale-110 transition-transform group"
+                        title="Edit Story"
+                      >
+                        <Edit3 className="w-5 h-5 text-purple-600" />
+                        <span className="sr-only">Edit Story</span>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(story._id)}
+                        className="hover:scale-110 transition-transform group"
+                        title="Delete Story"
+                      >
+                        <Trash2 className="w-5 h-5 text-purple-600" />
+                        <span className="sr-only">Delete Story</span>
+                      </button>
+                    </>
+                  )}
+                  {/* Duplicate button shown to everyone */}
+                  <button
+                    onClick={() => handleDuplicate(story._id)}
+                    className="hover:scale-110 transition-transform group"
+                    title="Duplicate Story"
+                  >
+                    <Copy className="w-5 h-5 text-purple-600" />
+                    <span className="sr-only">Duplicate Story</span>
+                  </button>
+                </div>
                 <button 
-                  onClick={() => onReadClick(story)}
+                  onClick={() => handleStoryRead(story)}
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg 
                     hover:bg-purple-700 transition-colors"
                 >
@@ -359,7 +370,7 @@ const StoryCard = ({
       {showStateMenu && isAuthor && (
         <StateMenu
           currentState={story.status}
-          onStateChange={handleStateChange}
+          onStateChange={(newState) => handleStateChange(story._id, newState)}
           position={menuPosition}
           onClose={() => setShowStateMenu(false)}
         />
