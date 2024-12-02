@@ -29,3 +29,19 @@
 .animate-earthquake {
   animation: earthquake 0.3s ease-in-out infinite;
 }
+
+@layer base {
+  /* Style all text inputs */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"] {
+    @apply text-black bg-gray-50;
+  }
+
+  /* Style all textareas */
+  textarea {
+    @apply text-black bg-gray-50;
+  }
+}

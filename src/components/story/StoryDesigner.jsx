@@ -23,14 +23,10 @@ const Sidebar = ({
   onImport,
   onExport,
   selectedChapterId,
-  selectedSceneId,
-  selectedSceneChapterId,
   onChapterSelect,
-  onSceneSelect,
   onChapterCreate,
   onChapterUpdate,
   onChapterDelete,
-  onSceneCreate
 }) => {
   return (
     <>
@@ -52,7 +48,7 @@ const Sidebar = ({
                 value={story.title}
                 onChange={(e) => updateStory({ ...story, title: e.target.value })}
                 placeholder="Story Title..."
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
               <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             </div>
@@ -281,13 +277,20 @@ const StoryDesigner = () => {
     loadStory();
   }, [location.state?.storyId]);
 
+  // Story modification handlers
+  const handleStoryChange = useCallback((modifier) => {
+    setStory(prevStory => modifier(prevStory));
+    setIsDirty(true);  // Mark as dirty for any story changes
+    setSaveError(null);
+  }, []);
+
   // Selection handlers
   const handleChapterSelect = useCallback((chapterId) => {
     setSelectedChapterId(chapterId);
   }, []);
 
   const handleChapterUpdate = useCallback((chapterId, updates) => {
-    setStory(prevStory => ({
+    handleStoryChange(prevStory => ({
       ...prevStory,
       chapters: {
         ...(prevStory.chapters || {}),
@@ -297,21 +300,21 @@ const StoryDesigner = () => {
         }
       }
     }));
-    setIsDirty(true);
-  }, []);
+  }, [handleStoryChange]);
 
   const handleChapterDelete = useCallback((chapterId) => {
-    setStory(prevStory => {
+    handleStoryChange(prevStory => {
       const { [chapterId]: deleted, ...remainingChapters } = prevStory.chapters || {};
       return {
         ...prevStory,
         chapters: remainingChapters
       };
     });
+    
     if (selectedChapterId === chapterId) {
       handleChapterSelect(null);
     }
-  }, [selectedChapterId, handleChapterSelect]);
+  }, [selectedChapterId, handleChapterSelect, handleStoryChange]);
 
   const handleSceneUpdate = useCallback((chapterId, updatedScenes) => {
     setStory((prevStory) => ({
@@ -423,7 +426,8 @@ const StoryDesigner = () => {
 
   const handleCreateChapter = useCallback(() => {
     const chapterId = `chapter${Object.keys(story.chapters || {}).length + 1}`;
-    setStory(prevStory => ({
+    
+    handleStoryChange(prevStory => ({
       ...prevStory,
       chapters: {
         ...(prevStory.chapters || {}),
@@ -433,9 +437,10 @@ const StoryDesigner = () => {
         }
       }
     }));
+    
     handleChapterSelect(chapterId);
     setActiveView('editor');
-  }, [story, handleChapterSelect]);
+  }, [story, handleStoryChange, handleChapterSelect]);
 
   const handleCreateScene = useCallback((chapterId) => {
     if (!chapterId) return;
@@ -598,10 +603,15 @@ const StoryDesigner = () => {
                       </div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">
                         {Object.keys(story.chapters).length === 0 
-                          ? 'Start Your Story'
+                          ? 'Begin Your Creative Journey'
                           : 'No Chapter Selected'
                         }
                       </h3>
+                      {Object.keys(story.chapters).length === 0 && (
+                        <p className="text-gray-600 mb-6">
+                          Every great story starts with a single chapter. Your imagination is the only limit - whether you're crafting an epic adventure, a heartwarming tale, or an intriguing mystery. Take that first step and bring your story to life.
+                        </p>
+                      )}
                       <div className="flex flex-col gap-3">
                         <button
                           onClick={handleCreateChapter}

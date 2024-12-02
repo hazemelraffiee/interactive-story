@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Plus,
   Pencil,
@@ -19,8 +19,16 @@ const ChaptersManager = ({
   const [editingChapterId, setEditingChapterId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
 
-  // Ensure we're working with an object even if chapters is somehow null/undefined
-  const safeChapters = chapters || {};
+  // Memoize the safe chapters object to prevent unnecessary re-renders
+  const safeChapters = useMemo(() => chapters || {}, [chapters]);
+
+  // Auto-select first chapter if none selected but chapters exist
+  useEffect(() => {
+    const chapterIds = Object.keys(safeChapters);
+    if (chapterIds.length > 0 && !selectedChapterId) {
+      onChapterSelect(chapterIds[0]);
+    }
+  }, [safeChapters, selectedChapterId, onChapterSelect]);
 
   const startEditing = useCallback((chapterId, currentTitle) => {
     setEditingChapterId(chapterId);
