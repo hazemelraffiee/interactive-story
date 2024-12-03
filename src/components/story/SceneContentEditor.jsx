@@ -13,6 +13,7 @@ import {
   X
 } from 'lucide-react';
 import { Scene } from './InteractiveStoryViewer';
+import SceneSelectorButton from './SceneSelectorButton';
 
 const TAB_ICONS = {
   editor: Edit3,
@@ -41,21 +42,21 @@ const TabButton = ({ active, id, label, onClick }) => {
   );
 };
 
-const EditorPanel = ({ scene, onUpdate }) => (
-  <div className="flex flex-col gap-4 h-full">
-    <div className="flex flex-col flex-1">
+const EditorPanel = ({ scene, onUpdate, story, onSceneCreate }) => (
+  <div className="flex flex-col gap-4">
+    <div className="flex flex-col">
       <h3 className="text-sm font-medium text-gray-700 mb-2">Scene Content</h3>
       <textarea
         value={scene.content || ''}
         onChange={(e) => onUpdate('content', e.target.value)}
-        className="flex-1 p-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+        className="w-full h-48 p-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
         placeholder="Write your scene content here..."
       />
     </div>
     
     <div>
-    <div className="flex items-center justify-between mb-2">
-      <h3 className="text-sm font-medium text-gray-700">Decisions</h3>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-medium text-gray-700">Decisions</h3>
         <button
           onClick={() => {
             const newDecisions = [...(scene.decisions || []), { text: '', nextScene: '' }];
@@ -68,9 +69,9 @@ const EditorPanel = ({ scene, onUpdate }) => (
         </button>
       </div>
       
-      <div className="space-y-3 overflow-y-auto">
-        {scene.decisions?.map((decision, index) => (
-          <div key={index} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {scene.decisions?.map((decision, index) => (
+          <div key={index} className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
             <input
               type="text"
               value={decision.text || ''}
@@ -82,17 +83,16 @@ const EditorPanel = ({ scene, onUpdate }) => (
               placeholder="Decision text..."
               className="w-full mb-2 px-3 py-1.5 text-sm border border-gray-200 rounded-md"
             />
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={decision.nextScene || ''}
-                onChange={(e) => {
+            <div className="flex items-center gap-2 min-h-[38px]">
+              <SceneSelectorButton
+                story={story}
+                currentValue={decision.nextScene}
+                onChange={(newSceneId) => {
                   const newDecisions = [...scene.decisions];
-                  newDecisions[index] = { ...decision, nextScene: e.target.value };
+                  newDecisions[index] = { ...decision, nextScene: newSceneId };
                   onUpdate('decisions', newDecisions);
                 }}
-                placeholder="Target scene..."
-                className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-md"
+                onSceneCreate={onSceneCreate}
               />
               <button
                 onClick={() => {
@@ -100,7 +100,7 @@ const EditorPanel = ({ scene, onUpdate }) => (
                   newDecisions.splice(index, 1);
                   onUpdate('decisions', newDecisions);
                 }}
-                className="p-1.5 text-red-500 hover:bg-red-50 rounded-md"
+                className="p-1.5 text-red-500 hover:bg-red-50 rounded-md flex-shrink-0"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -123,7 +123,8 @@ const SceneAccordionItem = ({
   onDelete,
   onMoveUp,
   onMoveDown,
-  onUpdateId
+  onUpdateId,
+  onCreateScene
 }) => {
   const [activeTab, setActiveTab] = useState('editor');
   const [isEditingId, setIsEditingId] = useState(false);
@@ -246,15 +247,17 @@ const SceneAccordionItem = ({
             </div>
           </div>
 
-          <div className="p-4 h-96">
+          <div className="p-4">
             {activeTab === 'editor' && (
               <EditorPanel
                 scene={scene}
                 onUpdate={(field, value) => onUpdate(sceneId, field, value)}
+                story={story}
+                onSceneCreate={onCreateScene}
               />
             )}
             {activeTab === 'preview' && (
-              <div className="h-full overflow-y-auto bg-gray-50 rounded-lg p-4">
+              <div className="bg-gray-50 rounded-lg p-4">
                 <Scene 
                   scene={scene} 
                   showDecisions={true}
@@ -264,10 +267,12 @@ const SceneAccordionItem = ({
               </div>
             )}
             {activeTab === 'both' && (
-              <div className="grid grid-cols-2 gap-4 h-full">
+              <div className="grid grid-cols-2 gap-4">
                 <EditorPanel
                   scene={scene}
                   onUpdate={(field, value) => onUpdate(sceneId, field, value)}
+                  story={story}
+                  onSceneCreate={onCreateScene}
                 />
                 <div className="bg-gray-50 rounded-lg p-4 overflow-y-auto">
                   <Scene 
@@ -414,6 +419,7 @@ const SceneContentEditor = ({
             onMoveUp={() => handleSceneMove(sceneId, 'up')}
             onMoveDown={() => handleSceneMove(sceneId, 'down')}
             onUpdateId={handleSceneIdUpdate}
+            onCreateScene={onCreateScene}
           />
         ))}
       </div>
