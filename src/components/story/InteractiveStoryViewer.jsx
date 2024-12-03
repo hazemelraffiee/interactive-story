@@ -79,14 +79,33 @@ const ContentBlock = ({ item }) => {
   }
 };
 
-const DecisionButton = ({ decision, chapter, scenes, allChapters, onDecision }) => {
+const parseSceneRef = (sceneRef) => {
+  if (!sceneRef) return null;
+  const [chapterId, sceneId] = sceneRef.split(':');
+  return { chapterId, sceneId };
+};
+
+const DecisionButton = ({ 
+  decision, 
+  chapter, 
+  scenes, 
+  allChapters, 
+  chapters, // Add this prop
+  onDecision 
+}) => {
+  const nextSceneRef = parseSceneRef(decision.nextScene);
+  const targetChapter = nextSceneRef?.chapterId || chapter;
+  const targetScene = nextSceneRef?.sceneId || decision.nextScene;
+  
+  // Now use chapters instead of story.chapters
   const isValidPath = decision.nextChapter
     ? allChapters.includes(decision.nextChapter)
-    : decision.nextScene && scenes.includes(decision.nextScene);
+    : targetScene && chapters[targetChapter]?.scenes && 
+      Object.keys(chapters[targetChapter].scenes).includes(targetScene);
 
   const errorMessage = decision.nextChapter
     ? `Chapter "${decision.nextChapter}" not implemented`
-    : `Scene "${decision.nextScene}" not implemented`;
+    : `Scene "${targetScene}" not implemented in ${targetChapter}`;
 
   return (
     <button
@@ -139,6 +158,7 @@ export const Scene = ({ scene, showDecisions = false, onDecision, chapter, chapt
               chapter={chapter}
               scenes={Object.keys(chapters[chapter].scenes)}
               allChapters={Object.keys(chapters)}
+              chapters={chapters}
               onDecision={onDecision}
             />
           ))}
@@ -236,11 +256,19 @@ const InteractiveStoryViewer = ({ story: propStory }) => {
         ]);
       }
     } else if (decision.nextScene) {
+      const nextSceneRef = parseSceneRef(decision.nextScene);
+      const targetChapter = nextSceneRef?.chapterId || currentChapter;
+      const targetScene = nextSceneRef?.sceneId || decision.nextScene;
+      
+      if (targetChapter !== currentChapter) {
+        setCurrentChapter(targetChapter);
+      }
+      
       setStoryHistory((prev) => [
         ...prev,
         {
-          chapterId: currentChapter,
-          sceneId: decision.nextScene,
+          chapterId: targetChapter,
+          sceneId: targetScene,
         },
       ]);
     }
