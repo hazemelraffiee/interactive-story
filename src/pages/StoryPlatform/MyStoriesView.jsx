@@ -4,7 +4,7 @@ import {
   BookOpen,
   Loader
 } from 'lucide-react';
-import StoryCard from '../../components/story/StoryCard';
+import StoryCard from '../../components/common/StoryCard';
 import NotificationToast from '../../components/common/NotificationToast';
 import storyService from '../../services/storyService';
 

@@ -8,9 +8,9 @@ import {
   Trash2,
   ChevronDown
 } from 'lucide-react';
-import ProgressBar from '../common/ProgressBar';
-import AchievementBadge from '../common/AchievementBadge';
-import NotificationToast from '../common/NotificationToast';
+import ProgressBar from './ProgressBar';
+import AchievementBadge from './AchievementBadge';
+import NotificationToast from './NotificationToast';
 import { useStoryOperations } from '../../hooks/useStoryOperations';
 import authService from '../../services/authService';
 import { getStoryThumbnail, generateThumbnailPlaceholder } from '../../services/thumbnailPlaceholder';

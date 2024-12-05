@@ -12,7 +12,7 @@ import {
   Save,
   X
 } from 'lucide-react';
-import { Scene } from './InteractiveStoryViewer';
+import { Scene } from '../Viewer/InteractiveStoryViewer';
 import SceneSelectorButton from './SceneSelectorButton';
 
 const TAB_ICONS = {

@@ -8,7 +8,7 @@ import {
   Grid,
   BookOpenCheck
 } from 'lucide-react';
-import StoryCard from '../../components/story/StoryCard';
+import StoryCard from '../../components/common/StoryCard';
 
 const StatsCard = ({ icon: Icon, label, value }) => (
   <div className="bg-white p-4 lg:p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">

@@ -6,9 +6,9 @@ import { TrendingUp, Clock, Star, Loader, AlertCircle, BookOpen } from 'lucide-r
 import Navigation from '../../components/layout/Navigation';
 import NotificationToast from '../../components/common/NotificationToast';
 import HeroSection from '../../components/sections/HeroSection';
-import InteractiveStoryViewer from '../../components/story/InteractiveStoryViewer';
-import StoryDesigner from '../../components/story/StoryDesigner';
-import StoryCard from '../../components/story/StoryCard';
+import InteractiveStoryViewer from '../Viewer/InteractiveStoryViewer';
+import StoryDesigner from '../Designer/StoryDesigner';
+import StoryCard from '../../components/common/StoryCard';
 import FavoritesView from './FavoritesView';
 import MyStoriesView from './MyStoriesView';
 import storyService from '../../services/storyService';

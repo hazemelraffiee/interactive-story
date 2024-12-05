@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription
-} from '../layout/CustomDialog';
+} from '../../components/layout/CustomDialog';
 
 // Helper function to parse combined scene reference
 const parseSceneRef = (sceneRef) => {

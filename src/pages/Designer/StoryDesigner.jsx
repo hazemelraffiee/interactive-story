@@ -8,7 +8,7 @@ import storyService from '../../services/storyService';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ChaptersManager from './ChaptersTreeDesigner';
 import SceneContentEditor from './SceneContentEditor';
-import InteractiveStoryViewer from './InteractiveStoryViewer';
+import InteractiveStoryViewer from '../Viewer/InteractiveStoryViewer';
 import StoryGraphViewer from './StoryGraphViewer';
 import { load as yamlLoad, dump as yamlDump } from 'js-yaml';
 import NotificationToast from '../../components/common/NotificationToast';
