@@ -8,11 +8,11 @@
         const basename = '/interactive-story';
         const path = window.location.pathname.replace(basename, '');
         
-        // Store the path in session storage
+        // Store the path in session storage, but format it for hash routing
         sessionStorage.setItem('redirect', path);
         
-        // Redirect to the main page
-        window.location.replace(basename);
+        // Redirect to the main page with hash
+        window.location.replace(`${basename}/#${path}`);
     </script>
 </head>
 <body>

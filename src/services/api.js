@@ -46,7 +46,7 @@ api.interceptors.response.use(
         // If refresh token fails, redirect to login
         localStorage.clear();
         sessionStorage.clear();
-        window.location.href = '/login';
+        window.location.href = window.location.origin + window.location.pathname + '#/login';
       }
     }
 

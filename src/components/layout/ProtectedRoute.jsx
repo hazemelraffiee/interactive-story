@@ -27,8 +27,18 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!user && !authService.isAuthenticated()) {
-    // Redirect them to the login page, but save the current location they were trying to go to
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    // Store the hash-based location
+    const currentLocation = {
+      pathname: location.pathname,
+      hash: location.hash,
+      search: location.search
+    };
+    
+    return <Navigate 
+      to="/login" 
+      state={{ from: currentLocation }} 
+      replace 
+    />;
   }
 
   return children;

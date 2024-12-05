@@ -31,7 +31,7 @@
         const basename = '/interactive-story';
         // Only redirect if we're on the base path
         if (window.location.pathname === basename) {
-          const newPath = basename + redirect;
+          const newPath = `${basename}/#${redirect}`;
           window.history.replaceState(null, null, newPath);
         }
       }

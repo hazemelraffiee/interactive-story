@@ -37,6 +37,7 @@ const LoginPage = () => {
       const { success, error } = await login(formData);
 
       if (success) {
+        // Use the 'from' variable here for navigation
         navigate(from, { replace: true });
       } else {
         setError(error);
