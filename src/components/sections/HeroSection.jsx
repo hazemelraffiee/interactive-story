@@ -1,26 +1,39 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import SearchBar from '../common/SearchBar';
 import GenrePills from '../common/GenrePills';
+import { Loader } from 'lucide-react';
+import storyService from '../../services/storyService';
 
 const HeroSection = ({ 
   searchQuery = '', 
   onSearchChange = () => {},
-  selectedGenres = ['all'],  // Changed from selectedGenre to selectedGenres
+  selectedGenres = ['all'],
   onGenreSelect = () => {},
   onFilterClick = () => {} 
 }) => {
-  const genres = [
-    "All", 
-    "Fantasy", 
-    "Sci-Fi", 
-    "Mystery", 
-    "Romance", 
-    "Adventure",
-    "Horror", 
-    "Historical", 
-    "Comedy", 
-    "Drama"
-  ];
+  const [genres, setGenres] = useState(['all']);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchGenres = async () => {
+      try {
+        setIsLoading(true);
+        const fetchedGenres = await storyService.getGenres();
+        // Capitalize first letter of each genre and 'All'
+        setGenres(['All', ...fetchedGenres.map(genre => 
+          genre.charAt(0).toUpperCase() + genre.slice(1).toLowerCase()
+        )]);
+      } catch (error) {
+        console.error('Failed to fetch genres:', error);
+        setError('Failed to load genres');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchGenres();
+  }, []);
 
   return (
     <div className="bg-white border-b border-gray-200">
@@ -41,12 +54,21 @@ const HeroSection = ({
           />
         </div>
 
-        {/* Genre Pills */}
-        <GenrePills
-          genres={genres}
-          selectedGenres={selectedGenres}  // Changed to match the plural name
-          onGenreSelect={onGenreSelect}
-        />
+        {/* Genre Pills with Loading and Error States */}
+        {isLoading ? (
+          <div className="flex items-center space-x-2 text-gray-500">
+            <Loader className="w-4 h-4 animate-spin" />
+            <span>Loading genres...</span>
+          </div>
+        ) : error ? (
+          <div className="text-red-500">{error}</div>
+        ) : (
+          <GenrePills
+            genres={genres}
+            selectedGenres={selectedGenres}
+            onGenreSelect={onGenreSelect}
+          />
+        )}
       </div>
     </div>
   );
